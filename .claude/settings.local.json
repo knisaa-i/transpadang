@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Asus/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/b643369a-1880-4ad3-a17f-aff338d89920/9e42daad-6120-437d-b44e-e8b7bf66170c/skills/xlsx/**)",
+      "Bash(python -c \"import pandas as pd; xl=pd.ExcelFile\\(r'D:\\\\Form Bobot SPM TP Perwako New.xlsx'\\); print\\(xl.sheet_names\\)\")",
+      "Bash(cmd /c \"dir /s /b src\\\\main\\\\java\")",
+      "Bash(python -c \"import pandas as pd; df=pd.read_excel\\(r'D:\\\\Form Bobot SPM TP Perwako New.xlsx', header=None\\); print\\(df.shape\\); print\\(df.to_string\\(\\)\\)\")",
+      "Bash(cmd /c \"dir /s /b src\\\\main\\\\resources & echo ---TARGET--- & dir /s /b target\\\\generated-sources 2>nul | findstr /i query\")"
+    ]
+  }
+}
