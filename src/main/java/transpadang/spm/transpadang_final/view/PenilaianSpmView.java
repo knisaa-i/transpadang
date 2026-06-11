@@ -3,6 +3,7 @@ package transpadang.spm.transpadang_final.view;
 import com.blazebit.persistence.view.EntityView;
 import com.blazebit.persistence.view.IdMapping;
 import com.blazebit.persistence.view.Mapping;
+import transpadang.spm.transpadang_final.entity.Koridor;
 import transpadang.spm.transpadang_final.entity.PenilaianSpm;
 import transpadang.spm.transpadang_final.entity.StatusPenilaian;
 
@@ -18,11 +19,18 @@ public interface PenilaianSpmView {
     @IdMapping
     Long getId();
 
-    @Mapping("koridor.id")
-    Long getKoridorId();
+    KoridorView getKoridor();
 
-    @Mapping("koridor.nama")
-    String getKoridorNama();
+    @EntityView(Koridor.class)
+    interface KoridorView {
+        @IdMapping
+        Long getId();
+
+        Integer getNomor();
+
+        String getNama();
+
+    }
 
     String getHari();
 
