@@ -13,6 +13,7 @@ public interface PenilaianDetailView {
     @IdMapping
     Long getId();
 
+
     @Mapping("bus.id")
     Long getBusId();
 
