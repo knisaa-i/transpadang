@@ -25,7 +25,7 @@ public class BusController {
         this.service = service;
     }
 
-    @GetMapping("/Daftar")
+    @GetMapping("/daftar")
     @Operation(summary = "Daftar bus dengan filter opsional (Blazebit/QueryDSL)")
     public ApiResponse<List<BusView>> findAll(
             @Parameter(description = "Filter koridor") @RequestParam(required = false) Long koridorId,

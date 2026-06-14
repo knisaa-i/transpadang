@@ -28,9 +28,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 public class SecurityConfiguration {
 
-    private static final String[] MASTER = {
-            "/api/koridor", "/api/bus", "/api/halte", "/api/indikator-spm", "/api/sub-kategori", "/api/aspek-pelayanan"
-    };
+    // Semua sub-path modul master (create/update/delete pakai sub-path bernama, mis. /new-koridor, /buat)
     private static final String[] MASTER_ID = {
             "/api/koridor/**", "/api/bus/**", "/api/halte/**", "/api/indikator-spm/**", "/api/sub-kategori/**", "/api/aspek-pelayanan/**"
     };
@@ -58,17 +56,24 @@ public class SecurityConfiguration {
                         ).permitAll()
                         // Registrasi user baru: hanya ADMIN
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").hasRole("ADMIN")
-                        // Data master: hanya ADMIN yang boleh menambah/mengubah/menghapus
-                        .requestMatchers(HttpMethod.POST, MASTER).hasRole("ADMIN")
+
+                        // Data master: baca = semua user login; buat/ubah/hapus = ADMIN
+                        .requestMatchers(HttpMethod.POST, MASTER_ID).hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, MASTER_ID).hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, MASTER_ID).hasRole("ADMIN")
-                        // Penilaian: buat & input/edit detail = MAKER/ADMIN ; ubah status dicek di service
-                        .requestMatchers(HttpMethod.POST, "/api/penilaian").hasAnyRole("MAKER", "ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/penilaian/*/detail").hasAnyRole("MAKER", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/penilaian/*/detail/**").hasAnyRole("MAKER", "ADMIN")
+
+                        // Penilaian SPM: buat & input/edit detail = MAKER/ADMIN
+                        .requestMatchers(HttpMethod.POST, "/api/penilaian/**").hasAnyRole("MAKER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/penilaian/hapus-detail/**").hasAnyRole("MAKER", "ADMIN")
                         // Hapus seluruh penilaian = ADMIN
                         .requestMatchers(HttpMethod.DELETE, "/api/penilaian/**").hasRole("ADMIN")
-                        // Sisanya (termasuk semua GET dan PATCH status) cukup login
+                        // PATCH ubah-status penilaian: dibatasi per-status di service (enforceStatusRole)
+
+                        // Checklist Harian: isi/tambah/hapus = MAKER (Korlap) / ADMIN
+                        .requestMatchers(HttpMethod.POST, "/api/checklist/**").hasAnyRole("MAKER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/checklist/**").hasAnyRole("MAKER", "ADMIN")
+
+                        // Sisanya (semua GET, PATCH ubah-status, /api/auth/me) cukup login
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

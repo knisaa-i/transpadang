@@ -19,19 +19,7 @@ import org.springframework.util.StringUtils;
 import transpadang.spm.transpadang_final.bean.ChecklistDetailRequest;
 import transpadang.spm.transpadang_final.bean.ChecklistHarianRequest;
 import transpadang.spm.transpadang_final.bean.PageResponse;
-import transpadang.spm.transpadang_final.entity.Bus;
-import transpadang.spm.transpadang_final.entity.ChecklistDetail;
-import transpadang.spm.transpadang_final.entity.ChecklistHarian;
-import transpadang.spm.transpadang_final.entity.ChecklistItem;
-import transpadang.spm.transpadang_final.entity.ChecklistTemplate;
-import transpadang.spm.transpadang_final.entity.Koridor;
-import transpadang.spm.transpadang_final.entity.QChecklistDetail;
-import transpadang.spm.transpadang_final.entity.QChecklistHarian;
-import transpadang.spm.transpadang_final.entity.QChecklistItem;
-import transpadang.spm.transpadang_final.entity.QChecklistTemplate;
-import transpadang.spm.transpadang_final.entity.StatusChecklist;
-import transpadang.spm.transpadang_final.entity.SubjekChecklist;
-import transpadang.spm.transpadang_final.entity.User;
+import transpadang.spm.transpadang_final.entity.*;
 import transpadang.spm.transpadang_final.view.ChecklistDetailView;
 import transpadang.spm.transpadang_final.view.ChecklistHarianView;
 import transpadang.spm.transpadang_final.view.ChecklistItemView;
@@ -243,16 +231,19 @@ public class ChecklistService {
             h.setTotalDenda(BigDecimal.ZERO);
             return;
         }
-        List<BigDecimal> nilaiDenda = cbf.create(em, BigDecimal.class)
-                .from(ChecklistDetail.class, "d")
-                .select("d.item.nilaiDenda")
-                .where("d.checklistHarian.id").eq(h.getId())
-                .where("d.hasil").eq(false)
-                .where("d.item.nilaiDenda").isNotNull()
+        var t = new QChecklistDetail("w");
+        var nilaiDenda = cbf.create(em, BigDecimal.class)
+                .from(ChecklistDetail.class, t.getMetadata().getName())
+                .select(t.item.nilaiDenda.toString())
+                .where(t.checklistHarian.id.toString()).eq(h.getId())
+                .where(t.hasil.toString()).eq(false)
+                .where(t.item.nilaiDenda.toString()).isNotNull()
                 .getResultList();
+
         BigDecimal total = nilaiDenda.stream()
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         h.setTotalDenda(total);
     }
 
@@ -370,8 +361,9 @@ public class ChecklistService {
     }
 
     private ChecklistTemplate findTemplate(Long id) {
-        var list = cbf.create(em, ChecklistTemplate.class, "t")
-                .where("t.id").eq(id)
+        var r = new QChecklistTemplate("p");
+        var list = cbf.create(em, ChecklistTemplate.class).from(ChecklistTemplate.class, r.getMetadata().getName())
+                .where(r.id.toString()).eq(id)
                 .getResultList();
         if (list.isEmpty()) {
             throw new EntityNotFoundException("Template tidak ditemukan: " + id);
@@ -380,8 +372,9 @@ public class ChecklistService {
     }
 
     private ChecklistItem findItem(Long id) {
-        var list = cbf.create(em, ChecklistItem.class, "i")
-                .where("i.id").eq(id)
+        var u = new QChecklistItem("s");
+        var list = cbf.create(em, ChecklistItem.class).from(ChecklistItem.class, u.getMetadata().getName())
+                .where(u.id.toString()).eq(id)
                 .getResultList();
         if (list.isEmpty()) {
             throw new EntityNotFoundException("Item checklist tidak ditemukan: " + id);
@@ -403,8 +396,9 @@ public class ChecklistService {
         if (auth == null || auth.getName() == null) {
             return null;
         }
-        var list = cbf.create(em, User.class, "u")
-                .where("u.username").eq(auth.getName())
+        var f = new QUser("k");
+        var list = cbf.create(em, User.class).from(User.class,f.getMetadata().getName())
+                .where(f.username.toString()).eq(auth.getName())
                 .getResultList();
         return list.isEmpty() ? null : list.getFirst();
     }

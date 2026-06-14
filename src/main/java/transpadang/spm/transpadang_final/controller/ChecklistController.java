@@ -50,13 +50,13 @@ public class ChecklistController {
                 .body(data);
     }
 
-    @GetMapping("/Template/Daftar")
+    @GetMapping("/template/daftar")
     @Operation(summary = "Daftar template (jenis form checklist harian)")
     public ApiResponse<List<ChecklistTemplateView>> listTemplates() {
         return ApiResponse.ok(service.listTemplates());
     }
 
-    @GetMapping("/Template/{kode}/Items")
+    @GetMapping("/template/{kode}/items")
     @Operation(summary = "Daftar item master sebuah template untuk merender form kosong")
     public ApiResponse<List<ChecklistItemView>> listItems(
             @Parameter(description = "Kode template: KENDARAAN/PRAMUGARA/BUS_DRIVER/KORLAP")
@@ -64,7 +64,7 @@ public class ChecklistController {
         return ApiResponse.ok(service.listItemsByKode(kode));
     }
 
-    @GetMapping("/Daftar")
+    @GetMapping("/daftar")
     @Operation(summary = "Daftar checklist harian dengan paginasi (Blazebit)")
     public ApiResponse<PageResponse<ChecklistHarianView>> findAll(
             @Parameter(description = "Filter template") @RequestParam(required = false) Long templateId,

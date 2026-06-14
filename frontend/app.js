@@ -156,7 +156,7 @@ async function renderSetup() {
   setHari();
   tgl.onchange = setHari;
   try {
-    const koridors = await api('/api/koridor/Daftar');
+    const koridors = await api('/api/koridor/daftar');
     document.getElementById('koridor').innerHTML = koridors.map(k => `<option value="${k.id}">${k.nama}</option>`).join('');
   } catch (e) { toast(e.message, 'err'); }
   document.getElementById('startBtn').onclick = startPenilaian;
@@ -164,7 +164,7 @@ async function renderSetup() {
 
 async function startPenilaian() {
   try {
-    pn = await api('/api/penilaian/New-Penilaian', {
+    pn = await api('/api/penilaian/new-penilaian', {
       method: 'POST',
       body: {
         koridorId: Number(document.getElementById('koridor').value),
@@ -213,11 +213,11 @@ async function renderWorkspace() {
 window.pilihKategori = async (cat) => {
   activeCat = cat;
   try {
-    units = await api((cat === 'BUS' ? '/api/bus/Daftar' : '/api/halte/Daftar') + '?koridorId=' + pn.koridor.id);
+    units = await api((cat === 'BUS' ? '/api/bus/daftar' : '/api/halte/daftar') + '?koridorId=' + pn.koridor.id);
   } catch (e) { toast(e.message, 'err'); units = []; }
   curUnitId = units.length ? units[0].id : null;
   try {
-    const page = await api('/api/indikator-spm/IndikatorFilter?kategori=' + cat + '&size=200');
+    const page = await api('/api/indikator-spm/indikator-filter?kategori=' + cat + '&size=200');
     qIndikators = page.content || [];
   } catch (e) { toast(e.message, 'err'); qIndikators = []; }
   unitFormOpen = false;
@@ -371,8 +371,8 @@ async function saveCurrentIndikator() {
     catatan: (cEl && cEl.value) ? cEl.value : null
   };
   if (activeCat === 'BUS') body.busId = curUnitId; else body.halteId = curUnitId;
-  await api('/api/penilaian/Tambah-detail/' + pn.id, { method: 'POST', body });
-  pn = await api('/api/penilaian/Get-Penilaian/' + pn.id);   // refresh untuk perbarui gate & status unit
+  await api('/api/penilaian/tambah-detail/' + pn.id, { method: 'POST', body });
+  pn = await api('/api/penilaian/get-penilaian/' + pn.id);   // refresh untuk perbarui gate & status unit
   return true;
 }
 
@@ -402,7 +402,7 @@ window.wizardPrev = async () => {
 window.submitPenilaian = async () => {
   if (!gateReady(pn)) { toast('Lengkapi Bus & Halte dulu', 'err'); return; }
   try {
-    await api('/api/penilaian/Ubah-Status/' + pn.id + '?status=SUBMITTED', { method: 'PATCH' });
+    await api('/api/penilaian/ubah-status/' + pn.id + '?status=SUBMITTED', { method: 'PATCH' });
     toast('Penilaian #' + pn.id + ' disubmit ke atasan', 'ok');
     pn = null; activeCat = null; units = []; qIndikators = []; curUnitId = null;
     activeTab = 'daftar';
@@ -430,7 +430,7 @@ async function renderDaftar() {
   const app = document.getElementById('app');
   app.innerHTML = '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h1>Daftar Penilaian</h1><p class="sub" style="margin:0">Alur: DRAFT → SUBMITTED → CHECKED → APPROVED</p></div><button class="btn" onclick="exportAllExcel()">Unduh semua (Excel)</button></div><div id="list" class="empty" style="margin-top:14px">Memuat…</div></div><div id="detail"></div>';
   try {
-    const page = await api('/api/penilaian/Daftar?page=0&size=50');
+    const page = await api('/api/penilaian/daftar?page=0&size=50');
     const rows = page.content || [];
     if (!rows.length) { document.getElementById('list').innerHTML = '<div class="empty">Belum ada penilaian.</div>'; return; }
     let html = `<table><thead><tr>
@@ -458,7 +458,7 @@ async function renderDaftar() {
 
 window.editPenilaian = async (id) => {
   try {
-    pn = await api('/api/penilaian/Get-Penilaian/' + id);
+    pn = await api('/api/penilaian/get-penilaian/' + id);
     activeCat = null; units = []; qIndikators = []; curUnitId = null;
     activeTab = 'input';
     render();
@@ -467,7 +467,7 @@ window.editPenilaian = async (id) => {
 
 window.changeStatus = async (id, status) => {
   try {
-    await api(`/api/penilaian/Ubah-Status/${id}?status=${status}`, { method: 'PATCH' });
+    await api(`/api/penilaian/ubah-status/${id}?status=${status}`, { method: 'PATCH' });
     toast('Status → ' + status, 'ok');
     render();
   } catch (e) { toast(e.message, 'err'); }
@@ -494,7 +494,7 @@ window.viewDetail = async (id) => {
   const box = document.getElementById('detail');
   box.innerHTML = '<div class="card empty">Memuat detail…</div>';
   try {
-    const p = await api('/api/penilaian/Get-Penilaian/' + id);
+    const p = await api('/api/penilaian/get-penilaian/' + id);
     let html = `<div class="card"><h2>Detail penilaian #${p.id}</h2>
       <p class="sub">${p.koridor ? p.koridor.nama : ''} · ${p.tanggal || ''} · status <b>${p.status}</b> · total <b>${fmt(p.totalCapaian)}</b></p>
       <table><thead><tr><th>Unit</th><th>Indikator</th><th>Nilai</th><th>Bobot</th><th>Skor</th><th>Catatan</th></tr></thead><tbody>`;
@@ -632,7 +632,7 @@ async function renderClSetup() {
   setHari();
   tgl.onchange = setHari;
   try {
-    if (!clTemplates.length) clTemplates = await api('/api/checklist/Template/Daftar');
+    if (!clTemplates.length) clTemplates = await api('/api/checklist/template/daftar');
     const tplSel = document.getElementById('cl-tpl');
     if (!clTemplates.length) {
       tplSel.innerHTML = '<option value="">(belum ada data)</option>';
@@ -643,7 +643,7 @@ async function renderClSetup() {
     }
   } catch (e) { toast(e.message, 'err'); }
   try {
-    const koridors = await api('/api/koridor/Daftar');
+    const koridors = await api('/api/koridor/daftar');
     document.getElementById('cl-koridor').innerHTML = koridors.map(k => `<option value="${k.id}">${k.nama}</option>`).join('');
   } catch (e) { toast(e.message, 'err'); }
   document.getElementById('cl-tpl').onchange = clRenderIdentity;
@@ -685,11 +685,11 @@ async function clStart() {
     body.shift = (document.getElementById('cl-shift') || {}).value || null;
   }
   try {
-    cl = await api('/api/checklist/New-Checklist', { method: 'POST', body });
-    clItems = await api('/api/checklist/Template/' + t.kode + '/Items');
+    cl = await api('/api/checklist/new-checklist', { method: 'POST', body });
+    clItems = await api('/api/checklist/template/' + t.kode + '/items');
     clCurBus = null; clBuses = [];
     clBuildAnswers();
-    if (t.subjek === 'BUS') clBuses = await api('/api/bus/Daftar?koridorId=' + koridorId);
+    if (t.subjek === 'BUS') clBuses = await api('/api/bus/daftar?koridorId=' + koridorId);
     toast('Checklist #' + cl.id + ' dibuat (DRAFT)', 'ok');
     render();
   } catch (e) { toast(e.message, 'err'); }
@@ -878,7 +878,7 @@ window.clSetKet = async (id, val) => {
 async function clUpsert(id) {
   const store = clIsBus() ? (clAnswers[clCurBus] || {}) : clAnswers;
   const a = store[id] || {};
-  await api('/api/checklist/Tambah-detail/' + cl.id, {
+  await api('/api/checklist/tambah-detail/' + cl.id, {
     method: 'POST',
     body: {
       itemId: Number(id),
@@ -908,7 +908,7 @@ window.clSubmit = async () => {
     if (belum) { toast('Masih ada ' + belum + ' item belum diisi', 'err'); return; }
   }
   try {
-    await api('/api/checklist/Ubah-Status/' + cl.id + '?status=SUBMITTED', { method: 'PATCH' });
+    await api('/api/checklist/ubah-status/' + cl.id + '?status=SUBMITTED', { method: 'PATCH' });
     toast('Checklist #' + cl.id + ' disubmit', 'ok');
     cl = null; clItems = []; clAnswers = {}; clBuses = []; clCurBus = null; clActiveTab = 'daftar-cl';
     render();
@@ -929,7 +929,7 @@ async function renderClDaftar() {
       <div id="cl-list" class="empty" style="margin-top:14px">Memuat…</div>
     </div>
     <div id="cl-detail"></div>`;
-  try { if (!clTemplates.length) clTemplates = await api('/api/checklist/Template/Daftar'); } catch (e) {}
+  try { if (!clTemplates.length) clTemplates = await api('/api/checklist/template/daftar'); } catch (e) {}
   const fsel = document.getElementById('cl-filter');
   fsel.innerHTML = `<option value="">Semua</option>` + clTemplates.map(t => `<option value="${t.id}">${t.nama}</option>`).join('');
   fsel.onchange = () => clLoadList(fsel.value);
@@ -940,7 +940,7 @@ async function clLoadList(templateId) {
   const list = document.getElementById('cl-list');
   list.innerHTML = 'Memuat…';
   try {
-    const page = await api('/api/checklist/Daftar?page=0&size=50' + (templateId ? '&templateId=' + templateId : ''));
+    const page = await api('/api/checklist/daftar?page=0&size=50' + (templateId ? '&templateId=' + templateId : ''));
     const rows = page.content || [];
     if (!rows.length) { list.innerHTML = '<div class="empty">Belum ada checklist.</div>'; return; }
     let html = `<table><thead><tr>
@@ -967,11 +967,11 @@ async function clLoadList(templateId) {
 
 window.clOpen = async (id) => {
   try {
-    cl = await api('/api/checklist/Get-Checklist/' + id);
-    clItems = await api('/api/checklist/Template/' + cl.template.kode + '/Items');
+    cl = await api('/api/checklist/get-checklist/' + id);
+    clItems = await api('/api/checklist/template/' + cl.template.kode + '/items');
     clCurBus = null; clBuses = [];
     clBuildAnswers();
-    if (clIsBus()) clBuses = await api('/api/bus/Daftar?koridorId=' + (cl.koridor ? cl.koridor.id : ''));
+    if (clIsBus()) clBuses = await api('/api/bus/daftar?koridorId=' + (cl.koridor ? cl.koridor.id : ''));
     clActiveTab = 'isi';
     render();
   } catch (e) { toast(e.message, 'err'); }
@@ -979,7 +979,7 @@ window.clOpen = async (id) => {
 
 window.clChangeStatus = async (id, status) => {
   try {
-    await api('/api/checklist/Ubah-Status/' + id + '?status=' + status, { method: 'PATCH' });
+    await api('/api/checklist/ubah-status/' + id + '?status=' + status, { method: 'PATCH' });
     toast('Status → ' + status, 'ok');
     render();
   } catch (e) { toast(e.message, 'err'); }
@@ -990,7 +990,7 @@ window.clExportAll = () => downloadXlsx('/api/checklist/export-all', 'rekap-chec
 window.clDelete = async (id) => {
   if (!confirm('Hapus checklist #' + id + '?')) return;
   try {
-    await api('/api/checklist/Hapus/' + id, { method: 'DELETE' });
+    await api('/api/checklist/hapus/' + id, { method: 'DELETE' });
     toast('Checklist dihapus', 'ok');
     render();
   } catch (e) { toast(e.message, 'err'); }
@@ -1000,7 +1000,7 @@ window.clViewDetail = async (id) => {
   const box = document.getElementById('cl-detail');
   box.innerHTML = '<div class="card empty">Memuat detail…</div>';
   try {
-    const c = await api('/api/checklist/Get-Checklist/' + id);
+    const c = await api('/api/checklist/get-checklist/' + id);
     const [ya, tidak] = clLabels(c.template ? c.template.tipeJawaban : '');
     const isBus = c.template && c.template.subjek === 'BUS';
     const objek = c.bus ? ('Lambung ' + c.bus.noLambung)
