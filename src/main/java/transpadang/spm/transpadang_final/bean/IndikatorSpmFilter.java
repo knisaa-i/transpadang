@@ -13,6 +13,9 @@ public class IndikatorSpmFilter {
     @Schema(description = "Filter berdasarkan sub kategori", example = "1")
     private Long subKategoriId;
 
+    @Schema(description = "Kategori penilaian: HALTE atau BUS (BUS = Bus + Manusia + tanpa sub-kategori)", example = "BUS")
+    private String kategori;
+
     @Schema(description = "Kata kunci pada uraian / indikator / nilai", example = "CCTV")
     private String keyword;
 

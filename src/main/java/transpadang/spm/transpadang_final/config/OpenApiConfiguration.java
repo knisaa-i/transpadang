@@ -18,7 +18,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OpenApiConfiguration {
 
-    private static final String SECURITY_SCHEME = "bearerAuth";
+    // HARUS sama dengan @SecurityRequirement(name = ...) di semua controller
+    private static final String SECURITY_SCHEME = "Bearer Authentication";
 
     @Bean
     public OpenAPI transpadangOpenAPI() {

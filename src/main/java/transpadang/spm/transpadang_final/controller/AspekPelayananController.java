@@ -22,31 +22,31 @@ public class AspekPelayananController {
 
     private final AspekPelayananService service;
 
-    @GetMapping
+    @GetMapping("/daftar")
     @Operation(summary = "Daftar seluruh aspek pelayanan (Blazebit)")
     public ApiResponse<List<AspekPelayananView>> findAll() {
         return ApiResponse.ok(service.findAll());
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/ambil/{id}")
     @Operation(summary = "Ambil aspek berdasarkan ID (QueryDSL)")
     public ApiResponse<AspekPelayananView> findById(@PathVariable Long id) {
         return ApiResponse.ok(service.findById(id));
     }
 
-    @PostMapping
+    @PostMapping("/buat")
     @Operation(summary = "Buat aspek baru")
     public ApiResponse<AspekPelayananView> create(@Valid @RequestBody AspekPelayananDto dto) {
         return ApiResponse.ok("Aspek berhasil dibuat", service.create(dto));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/perbarui/{id}")
     @Operation(summary = "Perbarui aspek")
     public ApiResponse<AspekPelayananView> update(@PathVariable Long id, @Valid @RequestBody AspekPelayananDto dto) {
         return ApiResponse.ok("Aspek berhasil diperbarui", service.update(id, dto));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/hapus/{id}")
     @Operation(summary = "Hapus aspek")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         service.delete(id);

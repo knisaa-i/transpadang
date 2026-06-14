@@ -2,6 +2,7 @@ package transpadang.spm.transpadang_final.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
@@ -21,6 +22,7 @@ import transpadang.spm.transpadang_final.view.PenilaianSpmView;
 @RestController
 @RequestMapping("/api/penilaian")
 @Tag(name = "Penilaian SPM", description = "Transaksi penilaian capaian SPM (header + detail)")
+@SecurityRequirement(name = "Bearer Authentication")
 public class PenilaianSpmController {
 
     private final PenilaianSpmService service;
@@ -31,7 +33,7 @@ public class PenilaianSpmController {
         this.exportService = exportService;
     }
 
-    @GetMapping
+    @GetMapping("/daftar")
     @Operation(summary = "Daftar penilaian dengan paginasi (Blazebit)")
     public ApiResponse<PageResponse<PenilaianSpmView>> findAll(
             @Parameter(description = "Filter koridor") @RequestParam(required = false) Long koridorId,
@@ -51,33 +53,33 @@ public class PenilaianSpmController {
                 .body(data);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/get-penilaian/{id}")
     @Operation(summary = "Ambil penilaian lengkap dengan detail (QueryDSL)")
     public ApiResponse<PenilaianSpmView> findById(@PathVariable Long id) {
         return ApiResponse.ok(service.findById(id));
     }
 
-    @PostMapping
+    @PostMapping("/new-penilaian")
     @Operation(summary = "Buat penilaian baru beserta detail (skor terbobot dihitung otomatis)")
     public ApiResponse<PenilaianSpmView> create(@Valid @RequestBody PenilaianSpmRequest request) {
         return ApiResponse.ok("Penilaian berhasil dibuat", service.create(request));
     }
 
-    @PostMapping("/{id}/detail")
+    @PostMapping("/tambah-detail/{id}")
     @Operation(summary = "Tambah/ubah satu detail penilaian (upsert per bus+indikator) — input/edit per item")
     public ApiResponse<PenilaianDetailView> upsertDetail(@PathVariable Long id,
                                                          @Valid @RequestBody PenilaianDetailRequest req) {
         return ApiResponse.ok("Detail tersimpan", service.upsertDetail(id, req));
     }
 
-    @DeleteMapping("/{id}/detail/{detailId}")
+    @DeleteMapping("/hapus-detail")
     @Operation(summary = "Hapus satu detail penilaian")
     public ApiResponse<Void> deleteDetail(@PathVariable Long id, @PathVariable Long detailId) {
         service.deleteDetail(id, detailId);
         return ApiResponse.ok("Detail dihapus", null);
     }
 
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/ubah-status/{id}")
     @Operation(summary = "Ubah status penilaian (alur maker-checker-approver)")
     public ApiResponse<PenilaianSpmView> updateStatus(
             @PathVariable Long id,
@@ -85,7 +87,7 @@ public class PenilaianSpmController {
         return ApiResponse.ok("Status berhasil diperbarui", service.updateStatus(id, status));
     }
 
-    @GetMapping("/{id}/export")
+    @GetMapping("/export-penilaian/{id}")
     @Operation(summary = "Export penilaian ke Excel (semua bus sebagai kolom)")
     public ResponseEntity<byte[]> export(@PathVariable Long id) {
         byte[] data = exportService.export(id);
@@ -97,7 +99,7 @@ public class PenilaianSpmController {
                 .body(data);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/hapus")
     @Operation(summary = "Hapus penilaian beserta detailnya")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         service.delete(id);

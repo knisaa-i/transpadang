@@ -8,104 +8,123 @@ import com.blazebit.persistence.view.EntityViewManager;
 import com.blazebit.persistence.view.EntityViewSetting;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import java.util.List;
 import transpadang.spm.transpadang_final.bean.IndikatorSpmDto;
 import transpadang.spm.transpadang_final.bean.IndikatorSpmFilter;
 import transpadang.spm.transpadang_final.bean.PageResponse;
 import transpadang.spm.transpadang_final.entity.AspekPelayanan;
 import transpadang.spm.transpadang_final.entity.IndikatorSpm;
+import transpadang.spm.transpadang_final.entity.QIndikatorSpm;
 import transpadang.spm.transpadang_final.entity.SubKategori;
 import transpadang.spm.transpadang_final.view.IndikatorSpmView;
 
 /**
  * Service Indikator SPM.
- * Response berupa Blazebit entity view ({@link IndikatorSpmView}) dengan paginasi Blazebit.
+ * Query memakai CriteriaBuilderFactory + QueryDSL Q-class (path type-safe),
+ * response berupa Blazebit entity view ({@link IndikatorSpmView}) dengan paginasi Blazebit.
  */
 @Service
+@RequiredArgsConstructor
 public class IndikatorSpmService {
 
-    @PersistenceContext
-    private EntityManager em;
-
+    private final EntityManager em;
     private final CriteriaBuilderFactory cbf;
     private final EntityViewManager evm;
 
-    public IndikatorSpmService(CriteriaBuilderFactory cbf, EntityViewManager evm) {
-        this.cbf = cbf;
-        this.evm = evm;
-    }
 
     @Transactional(readOnly = true)
     public PageResponse<IndikatorSpmView> search(IndikatorSpmFilter filter) {
-        CriteriaBuilder<IndikatorSpm> cb = cbf.create(em, IndikatorSpm.class);
+        var q = new QIndikatorSpm("i");
+        CriteriaBuilder<IndikatorSpm> query = cbf.create(em, IndikatorSpm.class)
+                .from(IndikatorSpm.class, q.getMetadata().getName());
 
         if (filter.getAspekId() != null) {
-            cb.where("aspek.id").eq(filter.getAspekId());
+            query.where(q.aspek.id.toString()).eq(filter.getAspekId());
         }
         if (filter.getSubKategoriId() != null) {
-            cb.where("subKategori.id").eq(filter.getSubKategoriId());
+            query.where(q.subKategori.id.toString()).eq(filter.getSubKategoriId());
+        }
+        if (filter.getKategori() != null && !filter.getKategori().isBlank()) {
+            String kat = filter.getKategori().trim().toUpperCase();
+            if ("HALTE".equals(kat)) {
+                query.where(q.subKategori.nama.toString()).eq("Halte");
+            } else if ("BUS".equals(kat)) {
+                query.whereOr()
+                        .where(q.subKategori.nama.toString()).in(List.of("Bus", "Manusia"))
+                        .where(q.subKategori.id.toString()).isNull()
+                        .endOr();
+            }
         }
         if (filter.getAktif() != null) {
-            cb.where("aktif").eq(filter.getAktif());
+            query.where(q.aktif.toString()).eq(filter.getAktif());
         }
         if (StringUtils.hasText(filter.getKeyword())) {
             String like = "%" + filter.getKeyword().trim() + "%";
-            cb.whereOr()
-                    .where("uraian").like(false).value(like).noEscape()
-                    .where("spmIndikator").like(false).value(like).noEscape()
-                    .where("spmNilai").like(false).value(like).noEscape()
+            query.whereOr()
+                    .where(q.uraian.toString()).like(false).value(like).noEscape()
+                    .where(q.spmIndikator.toString()).like(false).value(like).noEscape()
+                    .where(q.spmNilai.toString()).like(false).value(like).noEscape()
                     .endOr();
         }
-        cb.orderByAsc("aspek.id").orderByAsc("id");
+        query.orderByAsc(q.aspek.id.toString()).orderByAsc(q.id.toString());
 
         int page = filter.pageOrDefault();
         int size = filter.sizeOrDefault();
 
         EntityViewSetting<IndikatorSpmView, PaginatedCriteriaBuilder<IndikatorSpmView>> setting =
                 EntityViewSetting.create(IndikatorSpmView.class, page * size, size);
-        PagedList<IndikatorSpmView> result = evm.applySetting(setting, cb).getResultList();
+        PagedList<IndikatorSpmView> result = evm.applySetting(setting, query).getResultList();
         return PageResponse.of(result, page, size, result.getTotalSize());
     }
 
     @Transactional(readOnly = true)
     public IndikatorSpmView findById(Long id) {
-        IndikatorSpmView view = view(id);
-        if (view == null) {
+        var q = new QIndikatorSpm("i");
+        var query = cbf.create(em, IndikatorSpm.class).from(IndikatorSpm.class, q.getMetadata().getName())
+                .where(q.id.toString()).eq(id);
+        var result = evm.applySetting(EntityViewSetting.create(IndikatorSpmView.class), query).getResultList();
+        if (result.isEmpty()) {
             throw new EntityNotFoundException("Indikator SPM tidak ditemukan: " + id);
         }
-        return view;
+        return result.getFirst();
     }
 
     @Transactional
     public IndikatorSpmView create(IndikatorSpmDto dto) {
-        IndikatorSpm indikator = new IndikatorSpm();
+        var indikator = new IndikatorSpm();
         apply(indikator, dto);
         em.persist(indikator);
         em.flush();
-        return view(indikator.getId());
+        return findById(indikator.getId());
     }
 
     @Transactional
     public IndikatorSpmView update(Long id, IndikatorSpmDto dto) {
-        IndikatorSpm indikator = em.find(IndikatorSpm.class, id);
-        if (indikator == null) {
-            throw new EntityNotFoundException("Indikator SPM tidak ditemukan: " + id);
-        }
+        var indikator = findEntity(id);
         apply(indikator, dto);
         em.flush();
-        return view(id);
+        return findById(id);
     }
 
     @Transactional
     public void delete(Long id) {
-        IndikatorSpm indikator = em.find(IndikatorSpm.class, id);
-        if (indikator == null) {
+        em.remove(findEntity(id));
+    }
+
+    /** Ambil entity (managed) via cbf + QueryDSL Q-class, untuk update/delete. */
+    private IndikatorSpm findEntity(Long id) {
+        var q = new QIndikatorSpm("i");
+        var list = cbf.create(em, IndikatorSpm.class).from(IndikatorSpm.class, q.getMetadata().getName())
+                .where(q.id.toString()).eq(id)
+                .getResultList();
+        if (list.isEmpty()) {
             throw new EntityNotFoundException("Indikator SPM tidak ditemukan: " + id);
         }
-        em.remove(indikator);
+        return list.getFirst();
     }
 
     private void apply(IndikatorSpm indikator, IndikatorSpmDto dto) {
@@ -120,11 +139,5 @@ public class IndikatorSpmService {
         indikator.setTargetCapaian(dto.getTargetCapaian());
         indikator.setBobot(dto.getBobot());
         indikator.setAktif(dto.getAktif() != null ? dto.getAktif() : Boolean.TRUE);
-    }
-
-    private IndikatorSpmView view(Long id) {
-        CriteriaBuilder<IndikatorSpm> cb = cbf.create(em, IndikatorSpm.class).where("id").eq(id);
-        return evm.applySetting(EntityViewSetting.create(IndikatorSpmView.class), cb)
-                .getResultList().stream().findFirst().orElse(null);
     }
 }

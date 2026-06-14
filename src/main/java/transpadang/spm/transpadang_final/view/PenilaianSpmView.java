@@ -2,10 +2,10 @@ package transpadang.spm.transpadang_final.view;
 
 import com.blazebit.persistence.view.EntityView;
 import com.blazebit.persistence.view.IdMapping;
-import com.blazebit.persistence.view.Mapping;
 import transpadang.spm.transpadang_final.entity.Koridor;
 import transpadang.spm.transpadang_final.entity.PenilaianSpm;
 import transpadang.spm.transpadang_final.entity.StatusPenilaian;
+import transpadang.spm.transpadang_final.entity.User;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -30,6 +30,7 @@ public interface PenilaianSpmView {
 
         String getNama();
 
+
     }
 
     String getHari();
@@ -38,23 +39,20 @@ public interface PenilaianSpmView {
 
     StatusPenilaian getStatus();
 
-    @Mapping("maker.id")
-    Long getMakerId();
+    UserRefView getMaker();
 
-    @Mapping("maker.nama")
-    String getMakerNama();
+    UserRefView getChecker();
 
-    @Mapping("checker.id")
-    Long getCheckerId();
+    UserRefView getApprover();
 
-    @Mapping("checker.nama")
-    String getCheckerNama();
+    @EntityView(User.class)
+    interface UserRefView {
+        @IdMapping
+        Long getId();
 
-    @Mapping("approver.id")
-    Long getApproverId();
+        String getNama();
 
-    @Mapping("approver.nama")
-    String getApproverNama();
+    }
 
     LocalDateTime getCreatedAt();
 

@@ -29,10 +29,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfiguration {
 
     private static final String[] MASTER = {
-            "/api/koridor", "/api/bus", "/api/indikator-spm", "/api/sub-kategori", "/api/aspek-pelayanan"
+            "/api/koridor", "/api/bus", "/api/halte", "/api/indikator-spm", "/api/sub-kategori", "/api/aspek-pelayanan"
     };
     private static final String[] MASTER_ID = {
-            "/api/koridor/**", "/api/bus/**", "/api/indikator-spm/**", "/api/sub-kategori/**", "/api/aspek-pelayanan/**"
+            "/api/koridor/**", "/api/bus/**", "/api/halte/**", "/api/indikator-spm/**", "/api/sub-kategori/**", "/api/aspek-pelayanan/**"
     };
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -53,7 +53,8 @@ public class SecurityConfiguration {
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/actuator/**"
+                                "/actuator/**",
+                                "/ws/**"
                         ).permitAll()
                         // Registrasi user baru: hanya ADMIN
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").hasRole("ADMIN")

@@ -2,8 +2,9 @@ package transpadang.spm.transpadang_final.view;
 
 import com.blazebit.persistence.view.EntityView;
 import com.blazebit.persistence.view.IdMapping;
-import com.blazebit.persistence.view.Mapping;
+import transpadang.spm.transpadang_final.entity.AspekPelayanan;
 import transpadang.spm.transpadang_final.entity.IndikatorSpm;
+import transpadang.spm.transpadang_final.entity.SubKategori;
 
 import java.math.BigDecimal;
 
@@ -13,17 +14,25 @@ public interface IndikatorSpmView {
     @IdMapping
     Long getId();
 
-    @Mapping("aspek.id")
-    Long getAspekId();
+    AspekView getAspek();
 
-    @Mapping("aspek.nama")
-    String getAspekNama();
+    @EntityView(AspekPelayanan.class)
+    interface AspekView {
+        @IdMapping
+        Long getId();
 
-    @Mapping("subKategori.id")
-    Long getSubKategoriId();
+        String getNama();
+    }
 
-    @Mapping("subKategori.nama")
-    String getSubKategoriNama();
+    SubKategoriRefView getSubKategori();
+
+    @EntityView(SubKategori.class)
+    interface SubKategoriRefView {
+        @IdMapping
+        Long getId();
+
+        String getNama();
+    }
 
     String getNomorUrut();
 

@@ -7,7 +7,7 @@ import com.blazebit.persistence.view.EntityViewSetting;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,35 +29,21 @@ import transpadang.spm.transpadang_final.view.UserView;
  * </ul>
  */
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
-    @PersistenceContext
-    private EntityManager em;
-
+    private final EntityManager em;
     private final CriteriaBuilderFactory cbf;
     private final EntityViewManager evm;
-    private final JPAQueryFactory queryFactory;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-
-    public UserService(CriteriaBuilderFactory cbf,
-                       EntityViewManager evm,
-                       JPAQueryFactory queryFactory,
-                       PasswordEncoder passwordEncoder,
-                       JwtService jwtService) {
-        this.cbf = cbf;
-        this.evm = evm;
-        this.queryFactory = queryFactory;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
-    }
 
     @Transactional
     public UserView register(RegisterRequest request) {
         if (findEntityByUsername(request.getUsername()) != null) {
             throw new IllegalArgumentException("Username sudah digunakan: " + request.getUsername());
         }
-        User user = new User();
+        var user = new User();
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setNama(request.getNama());
@@ -71,7 +57,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        User user = findEntityByUsername(request.getUsername());
+        var user = findEntityByUsername(request.getUsername());
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new BadCredentialsException("Username atau password salah");
         }
@@ -84,7 +70,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserView getByUsername(String username) {
-        User user = findEntityByUsername(username);
+        var user = findEntityByUsername(username);
         if (user == null) {
             throw new EntityNotFoundException("User tidak ditemukan: " + username);
         }
@@ -93,15 +79,18 @@ public class UserService {
 
     /** Pencarian entity user via QueryDSL. */
     private User findEntityByUsername(String username) {
-        QUser q = QUser.user;
-        return queryFactory.selectFrom(q).where(q.username.eq(username)).fetchFirst();
+        var list = cbf.create(em, User.class, "u")
+                .where("u.username").eq(username)
+                .getResultList();
+        return list.isEmpty() ? null : list.getFirst();
     }
 
-    /** Proyeksi UserView via Blazebit entity view. */
+    /** Proyeksi UserView via Blazebit entity view (cbf + QueryDSL Q-class path). */
     private UserView loadView(Long id) {
-        CriteriaBuilder<User> cb = cbf.create(em, User.class).where("id").eq(id);
-        EntityViewSetting<UserView, CriteriaBuilder<UserView>> setting =
-                EntityViewSetting.create(UserView.class);
-        return evm.applySetting(setting, cb).getSingleResult();
+        var q = new QUser("u");
+        CriteriaBuilder<User> cb = cbf.create(em, User.class).from(User.class, q.getMetadata().getName())
+                .where(q.id.toString()).eq(id);
+        return evm.applySetting(EntityViewSetting.create(UserView.class), cb)
+                .getResultList().stream().findFirst().orElse(null);
     }
 }

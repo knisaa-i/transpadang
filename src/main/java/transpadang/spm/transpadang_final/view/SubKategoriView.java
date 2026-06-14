@@ -2,20 +2,25 @@ package transpadang.spm.transpadang_final.view;
 
 import com.blazebit.persistence.view.EntityView;
 import com.blazebit.persistence.view.IdMapping;
-import com.blazebit.persistence.view.Mapping;
+
+import transpadang.spm.transpadang_final.entity.AspekPelayanan;
 import transpadang.spm.transpadang_final.entity.SubKategori;
 
 @EntityView(SubKategori.class)
 public interface SubKategoriView {
 
-    @IdMapping
-    Long getId();
+        @IdMapping
+        Long getId();
 
-    @Mapping("aspek.id")
-    Long getAspekId();
+        AspekView getAspek();
 
-    @Mapping("aspek.nama")
-    String getAspekNama();
+        @EntityView(AspekPelayanan.class)
+        interface AspekView {
+            @IdMapping
+            Long getId();
+
+            String getNama();
+        }
 
     String getNama();
 

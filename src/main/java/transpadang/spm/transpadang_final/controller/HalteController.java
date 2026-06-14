@@ -7,27 +7,27 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import transpadang.spm.transpadang_final.bean.ApiResponse;
-import transpadang.spm.transpadang_final.bean.BusDto;
-import transpadang.spm.transpadang_final.service.BusService;
-import transpadang.spm.transpadang_final.view.BusView;
+import transpadang.spm.transpadang_final.bean.HalteDto;
+import transpadang.spm.transpadang_final.service.HalteService;
+import transpadang.spm.transpadang_final.view.HalteView;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/bus")
-@Tag(name = "Bus", description = "Manajemen data bus (unit kendaraan)")
+@RequestMapping("/api/halte")
+@Tag(name = "Halte", description = "Manajemen data halte (unit) per koridor")
 @SecurityRequirement(name = "Bearer Authentication")
-public class BusController {
+public class HalteController {
 
-    private final BusService service;
+    private final HalteService service;
 
-    public BusController(BusService service) {
+    public HalteController(HalteService service) {
         this.service = service;
     }
 
-    @GetMapping("/Daftar")
-    @Operation(summary = "Daftar bus dengan filter opsional (Blazebit/QueryDSL)")
-    public ApiResponse<List<BusView>> findAll(
+    @GetMapping("/daftar")
+    @Operation(summary = "Daftar halte dengan filter opsional (per koridor / status aktif)")
+    public ApiResponse<List<HalteView>> findAll(
             @Parameter(description = "Filter koridor") @RequestParam(required = false) Long koridorId,
             @Parameter(description = "Filter status aktif") @RequestParam(required = false) Boolean aktif) {
         if (koridorId != null || aktif != null) {
@@ -37,27 +37,27 @@ public class BusController {
     }
 
     @GetMapping("/ambil/{id}")
-    @Operation(summary = "Ambil bus berdasarkan ID")
-    public ApiResponse<BusView> findById(@PathVariable Long id) {
+    @Operation(summary = "Ambil halte berdasarkan ID")
+    public ApiResponse<HalteView> findById(@PathVariable Long id) {
         return ApiResponse.ok(service.findById(id));
     }
 
     @PostMapping("/buat")
-    @Operation(summary = "Buat bus baru")
-    public ApiResponse<BusView> create(@Valid @RequestBody BusDto dto) {
-        return ApiResponse.ok("Bus berhasil dibuat", service.create(dto));
+    @Operation(summary = "Buat halte baru")
+    public ApiResponse<HalteView> create(@Valid @RequestBody HalteDto dto) {
+        return ApiResponse.ok("Halte berhasil dibuat", service.create(dto));
     }
 
     @PutMapping("/perbarui/{id}")
-    @Operation(summary = "Perbarui bus")
-    public ApiResponse<BusView> update(@PathVariable Long id, @Valid @RequestBody BusDto dto) {
-        return ApiResponse.ok("Bus berhasil diperbarui", service.update(id, dto));
+    @Operation(summary = "Perbarui halte")
+    public ApiResponse<HalteView> update(@PathVariable Long id, @Valid @RequestBody HalteDto dto) {
+        return ApiResponse.ok("Halte berhasil diperbarui", service.update(id, dto));
     }
 
     @DeleteMapping("/hapus/{id}")
-    @Operation(summary = "Hapus bus")
+    @Operation(summary = "Hapus halte")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         service.delete(id);
-        return ApiResponse.ok("Bus berhasil dihapus", null);
+        return ApiResponse.ok("Halte berhasil dihapus", null);
     }
 }

@@ -6,86 +6,86 @@ import com.blazebit.persistence.view.EntityViewManager;
 import com.blazebit.persistence.view.EntityViewSetting;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import transpadang.spm.transpadang_final.bean.KoridorDto;
 import transpadang.spm.transpadang_final.entity.Koridor;
+import transpadang.spm.transpadang_final.entity.QKoridor;
 import transpadang.spm.transpadang_final.view.KoridorView;
 
 import java.util.List;
 
 /**
  * Service master Koridor.
- * Response berupa Blazebit entity view ({@link KoridorView}).
+ * Query memakai CriteriaBuilderFactory + QueryDSL Q-class (path type-safe),
+ * response berupa Blazebit entity view ({@link KoridorView}).
  */
 @Service
+@RequiredArgsConstructor
 public class KoridorService {
 
-    @PersistenceContext
-    private EntityManager em;
-
+    private final EntityManager em;
     private final CriteriaBuilderFactory cbf;
     private final EntityViewManager evm;
 
-    public KoridorService(CriteriaBuilderFactory cbf, EntityViewManager evm) {
-        this.cbf = cbf;
-        this.evm = evm;
-    }
-
     @Transactional(readOnly = true)
     public List<KoridorView> findAll() {
-        CriteriaBuilder<Koridor> cb = cbf.create(em, Koridor.class)
-                .orderByAsc("nomor").orderByAsc("id");
-        return evm.applySetting(EntityViewSetting.create(KoridorView.class), cb).getResultList();
+        var q = new QKoridor("k");
+        CriteriaBuilder<Koridor> query = cbf.create(em, Koridor.class).from(Koridor.class, q.getMetadata().getName())
+                .orderByAsc(q.nomor.toString())
+                .orderByAsc(q.id.toString());
+        return evm.applySetting(EntityViewSetting.create(KoridorView.class), query).getResultList();
     }
 
     @Transactional(readOnly = true)
     public KoridorView findById(Long id) {
-        KoridorView view = view(id);
-        if (view == null) {
+        var q = new QKoridor("k");
+        var query = cbf.create(em, Koridor.class).from(Koridor.class, q.getMetadata().getName())
+                .where(q.id.toString()).eq(id);
+        var result = evm.applySetting(EntityViewSetting.create(KoridorView.class), query).getResultList();
+        if (result.isEmpty()) {
             throw new EntityNotFoundException("Koridor tidak ditemukan: " + id);
         }
-        return view;
+        return result.getFirst();
     }
 
     @Transactional
     public KoridorView create(KoridorDto dto) {
-        Koridor koridor = new Koridor();
+        var koridor = new Koridor();
         apply(koridor, dto);
         em.persist(koridor);
         em.flush();
-        return view(koridor.getId());
+        return findById(koridor.getId());
     }
 
     @Transactional
     public KoridorView update(Long id, KoridorDto dto) {
-        Koridor koridor = em.find(Koridor.class, id);
-        if (koridor == null) {
-            throw new EntityNotFoundException("Koridor tidak ditemukan: " + id);
-        }
+        var koridor = findEntity(id);
         apply(koridor, dto);
         em.flush();
-        return view(id);
+        return findById(id);
     }
 
     @Transactional
     public void delete(Long id) {
-        Koridor koridor = em.find(Koridor.class, id);
-        if (koridor == null) {
+        em.remove(findEntity(id));
+    }
+
+    /** Ambil entity (managed) via cbf + QueryDSL Q-class, untuk update/delete. */
+    private Koridor findEntity(Long id) {
+        var q = new QKoridor("k");
+        var list = cbf.create(em, Koridor.class).from(Koridor.class, q.getMetadata().getName())
+                .where(q.id.toString()).eq(id)
+                .getResultList();
+        if (list.isEmpty()) {
             throw new EntityNotFoundException("Koridor tidak ditemukan: " + id);
         }
-        em.remove(koridor);
+        return list.getFirst();
     }
 
     private void apply(Koridor koridor, KoridorDto dto) {
         koridor.setNomor(dto.getNomor());
         koridor.setNama(dto.getNama());
-    }
-
-    private KoridorView view(Long id) {
-        CriteriaBuilder<Koridor> cb = cbf.create(em, Koridor.class).where("id").eq(id);
-        return evm.applySetting(EntityViewSetting.create(KoridorView.class), cb)
-                .getResultList().stream().findFirst().orElse(null);
     }
 }

@@ -6,10 +6,9 @@ import com.blazebit.persistence.PagedList;
 import com.blazebit.persistence.PaginatedCriteriaBuilder;
 import com.blazebit.persistence.view.EntityViewManager;
 import com.blazebit.persistence.view.EntityViewSetting;
-import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,12 +18,13 @@ import transpadang.spm.transpadang_final.bean.PageResponse;
 import transpadang.spm.transpadang_final.bean.PenilaianDetailRequest;
 import transpadang.spm.transpadang_final.bean.PenilaianSpmRequest;
 import transpadang.spm.transpadang_final.entity.Bus;
+import transpadang.spm.transpadang_final.entity.Halte;
 import transpadang.spm.transpadang_final.entity.IndikatorSpm;
 import transpadang.spm.transpadang_final.entity.Koridor;
 import transpadang.spm.transpadang_final.entity.PenilaianDetail;
 import transpadang.spm.transpadang_final.entity.PenilaianSpm;
 import transpadang.spm.transpadang_final.entity.QPenilaianDetail;
-import transpadang.spm.transpadang_final.entity.QUser;
+import transpadang.spm.transpadang_final.entity.QPenilaianSpm;
 import transpadang.spm.transpadang_final.entity.StatusPenilaian;
 import transpadang.spm.transpadang_final.entity.User;
 import transpadang.spm.transpadang_final.view.PenilaianDetailView;
@@ -36,51 +36,48 @@ import java.time.LocalDateTime;
 
 /**
  * Service transaksi Penilaian SPM (header + detail).
- * Response berupa Blazebit entity view ({@link PenilaianSpmView});
- * QueryDSL dipakai untuk lookup user yang login dan penghapusan detail.
+ * Query memakai CriteriaBuilderFactory + QueryDSL Q-class (path type-safe);
+ * response berupa Blazebit entity view ({@link PenilaianSpmView}).
  */
 @Service
+@RequiredArgsConstructor
 public class PenilaianSpmService {
 
-    @PersistenceContext
-    private EntityManager em;
-
+    private final EntityManager em;
     private final CriteriaBuilderFactory cbf;
     private final EntityViewManager evm;
-    private final JPAQueryFactory queryFactory;
-
-    public PenilaianSpmService(CriteriaBuilderFactory cbf, EntityViewManager evm, JPAQueryFactory queryFactory) {
-        this.cbf = cbf;
-        this.evm = evm;
-        this.queryFactory = queryFactory;
-    }
 
     @Transactional(readOnly = true)
     public PageResponse<PenilaianSpmView> findAll(Long koridorId, int page, int size) {
-        CriteriaBuilder<PenilaianSpm> cb = cbf.create(em, PenilaianSpm.class);
+        var q = new QPenilaianSpm("p");
+        CriteriaBuilder<PenilaianSpm> query = cbf.create(em, PenilaianSpm.class)
+                .from(PenilaianSpm.class, q.getMetadata().getName());
         if (koridorId != null) {
-            cb.where("koridor.id").eq(koridorId);
+            query.where(q.koridor.id.toString()).eq(koridorId);
         }
-        cb.orderByDesc("tanggal").orderByDesc("id");
+        query.orderByDesc(q.tanggal.toString()).orderByDesc(q.id.toString());
 
         EntityViewSetting<PenilaianSpmView, PaginatedCriteriaBuilder<PenilaianSpmView>> setting =
                 EntityViewSetting.create(PenilaianSpmView.class, page * size, size);
-        PagedList<PenilaianSpmView> result = evm.applySetting(setting, cb).getResultList();
+        PagedList<PenilaianSpmView> result = evm.applySetting(setting, query).getResultList();
         return PageResponse.of(result, page, size, result.getTotalSize());
     }
 
     @Transactional(readOnly = true)
     public PenilaianSpmView findById(Long id) {
-        PenilaianSpmView view = view(id);
-        if (view == null) {
+        var q = new QPenilaianSpm("p");
+        var query = cbf.create(em, PenilaianSpm.class).from(PenilaianSpm.class, q.getMetadata().getName())
+                .where(q.id.toString()).eq(id);
+        var result = evm.applySetting(EntityViewSetting.create(PenilaianSpmView.class), query).getResultList();
+        if (result.isEmpty()) {
             throw new EntityNotFoundException("Penilaian tidak ditemukan: " + id);
         }
-        return view;
+        return result.getFirst();
     }
 
     @Transactional
     public PenilaianSpmView create(PenilaianSpmRequest request) {
-        PenilaianSpm penilaian = new PenilaianSpm();
+        var penilaian = new PenilaianSpm();
         penilaian.setKoridor(em.getReference(Koridor.class, request.getKoridorId()));
         penilaian.setHari(request.getHari());
         penilaian.setTanggal(request.getTanggal());
@@ -99,24 +96,24 @@ public class PenilaianSpmService {
 
         if (request.getDetails() != null) {
             for (PenilaianDetailRequest dr : request.getDetails()) {
-                em.persist(buildDetail(penilaian, dr));
+                em.merge(buildDetail(penilaian, dr));
             }
         }
         em.flush();
-        return view(penilaian.getId());
+        return findById(penilaian.getId());
     }
 
     @Transactional
     public PenilaianSpmView updateStatus(Long id, StatusPenilaian status) {
-        PenilaianSpm penilaian = em.find(PenilaianSpm.class, id);
-        if (penilaian == null) {
-            throw new EntityNotFoundException("Penilaian tidak ditemukan: " + id);
-        }
+        PenilaianSpm penilaian = findEntity(id);
         User current = currentUserOrNull();
         if (current == null) {
             throw new AccessDeniedException("Tidak terautentikasi");
         }
         enforceStatusRole(status, current.getRole());
+        if (status == StatusPenilaian.SUBMITTED) {
+            ensureComplete(penilaian);
+        }
 
         penilaian.setStatus(status);
         if (status == StatusPenilaian.CHECKED) {
@@ -126,54 +123,53 @@ public class PenilaianSpmService {
         }
         penilaian.setUpdatedAt(LocalDateTime.now());
         em.flush();
-        return view(id);
+        return findById(id);
     }
 
     @Transactional
     public void delete(Long id) {
-        PenilaianSpm penilaian = em.find(PenilaianSpm.class, id);
-        if (penilaian == null) {
-            throw new EntityNotFoundException("Penilaian tidak ditemukan: " + id);
-        }
-        QPenilaianDetail d = QPenilaianDetail.penilaianDetail;
-        queryFactory.delete(d).where(d.penilaian.id.eq(id)).execute();
+        PenilaianSpm penilaian = findEntity(id);
+        cbf.delete(em, PenilaianDetail.class, "d")
+                .where("d.penilaian.id").eq(id)
+                .executeUpdate();
         em.remove(penilaian);
     }
 
     /**
-     * Tambah/ubah SATU detail (upsert berdasarkan kombinasi penilaian + bus + indikator).
-     * Dipakai untuk input/edit per item.
+     * Tambah/ubah SATU detail (upsert: penilaian + bus + indikator). Untuk input/edit per item.
      */
     @Transactional
     public PenilaianDetailView upsertDetail(Long penilaianId, PenilaianDetailRequest dr) {
-        PenilaianSpm p = em.find(PenilaianSpm.class, penilaianId);
-        if (p == null) {
-            throw new EntityNotFoundException("Penilaian tidak ditemukan: " + penilaianId);
-        }
+        validateUnit(dr);
+        PenilaianSpm p = findEntity(penilaianId);
         ensureEditable(p);
-        IndikatorSpm indikator = em.find(IndikatorSpm.class, dr.getIndikatorId());
-        if (indikator == null) {
-            throw new EntityNotFoundException("Indikator tidak ditemukan: " + dr.getIndikatorId());
+        IndikatorSpm indikator = findIndikator(dr.getIndikatorId());
+
+        var q = new QPenilaianDetail("d");
+        var builder = cbf.create(em, PenilaianDetail.class)
+                .from(PenilaianDetail.class, "d")
+                .where(q.penilaian.id.toString()).eq(penilaianId)
+                .where(q.indikator.id.toString()).eq(dr.getIndikatorId());
+
+        if (dr.getBusId() != null) {
+            builder.where(q.bus.id.toString()).eq(dr.getBusId());
+        } else {
+            builder.where(q.halte.id.toString()).eq(dr.getHalteId());
         }
 
-        QPenilaianDetail q = QPenilaianDetail.penilaianDetail;
-        PenilaianDetail detail = queryFactory.selectFrom(q)
-                .where(q.penilaian.id.eq(penilaianId)
-                        .and(q.bus.id.eq(dr.getBusId()))
-                        .and(q.indikator.id.eq(dr.getIndikatorId())))
-                .fetchFirst();
+        var list = builder.getResultList();
+        PenilaianDetail detail = list.isEmpty() ? null : list.getFirst();
+
         if (detail == null) {
             detail = new PenilaianDetail();
             detail.setPenilaian(p);
-            detail.setBus(em.getReference(Bus.class, dr.getBusId()));
+            applyUnit(detail, dr);
             detail.setIndikator(indikator);
         }
         detail.setNilaiCapaian(dr.getNilaiCapaian());
         detail.setSkorTerbobot(hitungSkor(dr.getNilaiCapaian(), indikator.getBobot()));
         detail.setCatatan(dr.getCatatan());
-        if (detail.getId() == null) {
-            em.persist(detail);
-        }
+        detail = em.merge(detail);
         p.setUpdatedAt(LocalDateTime.now());
         em.flush();
         return detailView(detail.getId());
@@ -181,13 +177,74 @@ public class PenilaianSpmService {
 
     @Transactional
     public void deleteDetail(Long penilaianId, Long detailId) {
-        PenilaianDetail detail = em.find(PenilaianDetail.class, detailId);
-        if (detail == null || detail.getPenilaian() == null
-                || !detail.getPenilaian().getId().equals(penilaianId)) {
+        var list = cbf.create(em, PenilaianDetail.class, "d")
+                .fetch("penilaian")
+                .where("d.id").eq(detailId)
+                .where("d.penilaian.id").eq(penilaianId)
+                .getResultList();
+        if (list.isEmpty()) {
             throw new EntityNotFoundException("Detail tidak ditemukan: " + detailId);
         }
+        PenilaianDetail detail = list.getFirst();
         ensureEditable(detail.getPenilaian());
         em.remove(detail);
+    }
+
+    /**
+     * Pastikan SEMUA bus & halte sudah dinilai sebelum submit:
+     * target = (bus aktif × indikator Bus) + (halte aktif × indikator Halte) == jumlah detail tersimpan.
+     */
+    private void ensureComplete(PenilaianSpm penilaian) {
+        Long koridorId = penilaian.getKoridor() != null ? penilaian.getKoridor().getId() : null;
+
+        long busCount = nz(cbf.create(em, Long.class, "b")
+                .from(Bus.class, "b")
+                .select("COUNT(b)")
+                .where("b.koridor.id").eq(koridorId)
+                .where("b.aktif").eq(true)
+                .getSingleResult());
+
+        long halteCount = nz(cbf.create(em, Long.class, "h")
+                .from(Halte.class, "h")
+                .select("COUNT(h)")
+                .where("h.koridor.id").eq(koridorId)
+                .where("h.aktif").eq(true)
+                .getSingleResult());
+
+        long busInd = nz(cbf.create(em, Long.class, "i")
+                .from(IndikatorSpm.class, "i")
+                .select("COUNT(i)")
+                .where("i.aktif").eq(true)
+                .whereOr()
+                .where("i.subKategori.nama").in("Bus", "Manusia")
+                .where("i.subKategori").isNull()
+                .endOr()
+                .getSingleResult());
+
+        long halteInd = nz(cbf.create(em, Long.class, "i")
+                .from(IndikatorSpm.class, "i")
+                .select("COUNT(i)")
+                .where("i.aktif").eq(true)
+                .where("i.subKategori.nama").eq("Halte")
+                .getSingleResult());
+
+        long target = busCount * busInd + halteCount * halteInd;
+
+        long saved = nz(cbf.create(em, Long.class, "d")
+                .from(PenilaianDetail.class, "d")
+                .select("COUNT(d)")
+                .where("d.penilaian.id").eq(penilaian.getId())
+                .getSingleResult());
+
+        if (saved < target) {
+            throw new IllegalArgumentException(
+                    "Masih ada data yang belum dinilai (" + saved + " dari " + target +
+                            " terisi). Semua bus & halte harus dinilai dulu sebelum submit.");
+        }
+    }
+
+    private long nz(Long v) {
+        return v == null ? 0L : v;
     }
 
     private void ensureEditable(PenilaianSpm p) {
@@ -200,31 +257,68 @@ public class PenilaianSpmService {
 
     // ---- helper ----
 
-    private PenilaianSpmView view(Long id) {
-        CriteriaBuilder<PenilaianSpm> cb = cbf.create(em, PenilaianSpm.class).where("id").eq(id);
-        return evm.applySetting(EntityViewSetting.create(PenilaianSpmView.class), cb)
-                .getResultList().stream().findFirst().orElse(null);
+    /** Ambil entity penilaian (managed) via cbf + QueryDSL Q-class. */
+    private PenilaianSpm findEntity(Long id) {
+        var q = new QPenilaianSpm("p");
+        var list = cbf.create(em, PenilaianSpm.class).from(PenilaianSpm.class, q.getMetadata().getName())
+                .where(q.id.toString()).eq(id)
+                .getResultList();
+        if (list.isEmpty()) {
+            throw new EntityNotFoundException("Penilaian tidak ditemukan: " + id);
+        }
+        return list.getFirst();
     }
 
-    private PenilaianDetailView detailView(Long id) {
-        CriteriaBuilder<PenilaianDetail> cb = cbf.create(em, PenilaianDetail.class).where("id").eq(id);
-        return evm.applySetting(EntityViewSetting.create(PenilaianDetailView.class), cb)
-                .getResultList().stream().findFirst().orElse(null);
+    private IndikatorSpm findIndikator(Long id) {
+        var list = cbf.create(em, IndikatorSpm.class, "i")
+                .where("i.id").eq(id)
+                .getResultList();
+        if (list.isEmpty()) {
+            throw new EntityNotFoundException("Indikator tidak ditemukan: " + id);
+        }
+        return list.getFirst();
     }
 
     private PenilaianDetail buildDetail(PenilaianSpm penilaian, PenilaianDetailRequest dr) {
-        IndikatorSpm indikator = em.find(IndikatorSpm.class, dr.getIndikatorId());
-        if (indikator == null) {
-            throw new EntityNotFoundException("Indikator tidak ditemukan: " + dr.getIndikatorId());
-        }
-        PenilaianDetail detail = new PenilaianDetail();
+        validateUnit(dr);
+        var indikator = findIndikator(dr.getIndikatorId());
+        var detail = new PenilaianDetail();
         detail.setPenilaian(penilaian);
-        detail.setBus(em.getReference(Bus.class, dr.getBusId()));
+        applyUnit(detail, dr);
         detail.setIndikator(indikator);
         detail.setNilaiCapaian(dr.getNilaiCapaian());
         detail.setSkorTerbobot(hitungSkor(dr.getNilaiCapaian(), indikator.getBobot()));
         detail.setCatatan(dr.getCatatan());
         return detail;
+    }
+
+    /** Isi bus ATAU halte ke detail sesuai request. */
+    private void applyUnit(PenilaianDetail detail, PenilaianDetailRequest dr) {
+        if (dr.getBusId() != null) {
+            detail.setBus(em.getReference(Bus.class, dr.getBusId()));
+            detail.setHalte(null);
+        } else {
+            detail.setHalte(em.getReference(Halte.class, dr.getHalteId()));
+            detail.setBus(null);
+        }
+    }
+
+    /** Wajib tepat satu: busId (kategori Bus) ATAU halteId (kategori Halte). */
+    private void validateUnit(PenilaianDetailRequest dr) {
+        boolean hasBus = dr.getBusId() != null;
+        boolean hasHalte = dr.getHalteId() != null;
+        if (hasBus == hasHalte) {
+            throw new IllegalArgumentException(
+                    "Isi tepat satu: busId (kategori Bus) ATAU halteId (kategori Halte).");
+        }
+    }
+
+    private PenilaianDetailView detailView(Long id) {
+        var q = new QPenilaianDetail("d");
+        var query = cbf.create(em, PenilaianDetail.class).from(PenilaianDetail.class, q.getMetadata().getName())
+                .where(q.id.toString()).eq(id);
+        return evm.applySetting(EntityViewSetting.create(PenilaianDetailView.class), query)
+                .getResultList().stream().findFirst().orElse(null);
     }
 
     private BigDecimal hitungSkor(BigDecimal nilai, BigDecimal bobot) {
@@ -257,7 +351,9 @@ public class PenilaianSpmService {
         if (auth == null || auth.getName() == null) {
             return null;
         }
-        QUser u = QUser.user;
-        return queryFactory.selectFrom(u).where(u.username.eq(auth.getName())).fetchFirst();
+        var list = cbf.create(em, User.class, "u")
+                .where("u.username").eq(auth.getName())
+                .getResultList();
+        return list.isEmpty() ? null : list.getFirst();
     }
 }

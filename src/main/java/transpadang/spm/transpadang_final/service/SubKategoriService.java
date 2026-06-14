@@ -6,11 +6,12 @@ import com.blazebit.persistence.view.EntityViewManager;
 import com.blazebit.persistence.view.EntityViewSetting;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import transpadang.spm.transpadang_final.bean.SubKategoriDto;
 import transpadang.spm.transpadang_final.entity.AspekPelayanan;
+import transpadang.spm.transpadang_final.entity.QSubKategori;
 import transpadang.spm.transpadang_final.entity.SubKategori;
 import transpadang.spm.transpadang_final.view.SubKategoriView;
 
@@ -18,86 +19,89 @@ import java.util.List;
 
 /**
  * Service master Sub Kategori (Halte, Bus, Manusia) di bawah aspek.
- * Response berupa Blazebit entity view ({@link SubKategoriView}).
+ * Query memakai CriteriaBuilderFactory + QueryDSL Q-class (path type-safe),
+ * response berupa Blazebit entity view ({@link SubKategoriView}).
  */
 @Service
+@RequiredArgsConstructor
 public class SubKategoriService {
 
-    @PersistenceContext
-    private EntityManager em;
-
+    private final EntityManager em;
     private final CriteriaBuilderFactory cbf;
     private final EntityViewManager evm;
 
-    public SubKategoriService(CriteriaBuilderFactory cbf, EntityViewManager evm) {
-        this.cbf = cbf;
-        this.evm = evm;
-    }
-
     @Transactional(readOnly = true)
     public List<SubKategoriView> findAll() {
-        CriteriaBuilder<SubKategori> cb = cbf.create(em, SubKategori.class)
-                .orderByAsc("aspek.id").orderByAsc("urutan").orderByAsc("id");
-        return evm.applySetting(EntityViewSetting.create(SubKategoriView.class), cb).getResultList();
+        var q = new QSubKategori("s");
+        CriteriaBuilder<SubKategori> query = cbf.create(em, SubKategori.class)
+                .from(SubKategori.class, q.getMetadata().getName())
+                .orderByAsc(q.aspek.id.toString())
+                .orderByAsc(q.urutan.toString())
+                .orderByAsc(q.id.toString());
+        return evm.applySetting(EntityViewSetting.create(SubKategoriView.class), query).getResultList();
     }
 
     @Transactional(readOnly = true)
     public List<SubKategoriView> findByAspek(Long aspekId) {
-        CriteriaBuilder<SubKategori> cb = cbf.create(em, SubKategori.class);
+        var q = new QSubKategori("s");
+        CriteriaBuilder<SubKategori> query = cbf.create(em, SubKategori.class)
+                .from(SubKategori.class, q.getMetadata().getName());
         if (aspekId != null) {
-            cb.where("aspek.id").eq(aspekId);
+            query.where(q.aspek.id.toString()).eq(aspekId);
         }
-        cb.orderByAsc("urutan").orderByAsc("id");
-        return evm.applySetting(EntityViewSetting.create(SubKategoriView.class), cb).getResultList();
+        query.orderByAsc(q.urutan.toString()).orderByAsc(q.id.toString());
+        return evm.applySetting(EntityViewSetting.create(SubKategoriView.class), query).getResultList();
     }
 
     @Transactional(readOnly = true)
     public SubKategoriView findById(Long id) {
-        SubKategoriView view = view(id);
-        if (view == null) {
+        var q = new QSubKategori("s");
+        var query = cbf.create(em, SubKategori.class).from(SubKategori.class, q.getMetadata().getName())
+                .where(q.id.toString()).eq(id);
+        var result = evm.applySetting(EntityViewSetting.create(SubKategoriView.class), query).getResultList();
+        if (result.isEmpty()) {
             throw new EntityNotFoundException("Sub kategori tidak ditemukan: " + id);
         }
-        return view;
+        return result.getFirst();
     }
 
     @Transactional
     public SubKategoriView create(SubKategoriDto dto) {
-        SubKategori sub = new SubKategori();
+        var sub = new SubKategori();
         apply(sub, dto);
         em.persist(sub);
         em.flush();
-        return view(sub.getId());
+        return findById(sub.getId());
     }
 
     @Transactional
     public SubKategoriView update(Long id, SubKategoriDto dto) {
-        SubKategori sub = em.find(SubKategori.class, id);
-        if (sub == null) {
-            throw new EntityNotFoundException("Sub kategori tidak ditemukan: " + id);
-        }
+        var sub = findEntity(id);
         apply(sub, dto);
         em.flush();
-        return view(id);
+        return findById(id);
     }
 
     @Transactional
     public void delete(Long id) {
-        SubKategori sub = em.find(SubKategori.class, id);
-        if (sub == null) {
+        em.remove(findEntity(id));
+    }
+
+    /** Ambil entity (managed) via cbf + QueryDSL Q-class, untuk update/delete. */
+    private SubKategori findEntity(Long id) {
+        var q = new QSubKategori("s");
+        var list = cbf.create(em, SubKategori.class).from(SubKategori.class, q.getMetadata().getName())
+                .where(q.id.toString()).eq(id)
+                .getResultList();
+        if (list.isEmpty()) {
             throw new EntityNotFoundException("Sub kategori tidak ditemukan: " + id);
         }
-        em.remove(sub);
+        return list.getFirst();
     }
 
     private void apply(SubKategori sub, SubKategoriDto dto) {
         sub.setAspek(em.getReference(AspekPelayanan.class, dto.getAspekId()));
         sub.setNama(dto.getNama());
         sub.setUrutan(dto.getUrutan());
-    }
-
-    private SubKategoriView view(Long id) {
-        CriteriaBuilder<SubKategori> cb = cbf.create(em, SubKategori.class).where("id").eq(id);
-        return evm.applySetting(EntityViewSetting.create(SubKategoriView.class), cb)
-                .getResultList().stream().findFirst().orElse(null);
     }
 }

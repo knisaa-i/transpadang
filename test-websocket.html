@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Tes WebSocket Trans Padang</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 24px auto; padding: 0 16px; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+    h2 { margin-top: 0; }
+    input { padding: 6px; width: 60%; }
+    button { padding: 6px 12px; cursor: pointer; }
+    .log { background: #111; color: #0f0; font-family: monospace; font-size: 13px;
+           padding: 10px; height: 160px; overflow-y: auto; border-radius: 6px; margin-top: 10px; white-space: pre-wrap; }
+    .status { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Tes WebSocket Trans Padang</h1>
+
+  <!-- ===== Native WebSocket (Spring, port 8080) ===== -->
+  <div class="card">
+    <h2>1. Native WebSocket <small>/ws/notifications (8080)</small></h2>
+    <p>Status: <span id="wsStatus" class="status">belum konek</span></p>
+    <input id="wsInput" placeholder="ketik pesan..." value="halo native">
+    <button onclick="wsSend()">Kirim</button>
+    <div id="wsLog" class="log"></div>
+  </div>
+
+  <!-- ===== Socket.IO (netty-socketio, port 9090) ===== -->
+  <div class="card">
+    <h2>2. Socket.IO <small>(9090)</small></h2>
+    <p>Status: <span id="ioStatus" class="status">belum konek</span></p>
+    <input id="ioInput" placeholder="ketik pesan..." value="halo socketio">
+    <button onclick="ioSend()">Kirim</button>
+    <div id="ioLog" class="log"></div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    // ---------- Native WebSocket ----------
+    const wsLog = (m) => { const e = document.getElementById('wsLog'); e.textContent += m + "\n"; e.scrollTop = e.scrollHeight; };
+    const ws = new WebSocket("ws://localhost:8080/ws/notifications");
+    ws.onopen    = () => { document.getElementById('wsStatus').textContent = "CONNECTED ✅"; wsLog("[open] terhubung"); };
+    ws.onmessage = (e) => wsLog("[recv] " + e.data);
+    ws.onclose   = () => { document.getElementById('wsStatus').textContent = "CLOSED ❌"; wsLog("[close]"); };
+    ws.onerror   = () => wsLog("[error] cek apakah app jalan & endpoint benar");
+    function wsSend() {
+      const v = document.getElementById('wsInput').value;
+      ws.send(v); wsLog("[send] " + v);
+    }
+
+    // ---------- Socket.IO ----------
+    const ioLog = (m) => { const e = document.getElementById('ioLog'); e.textContent += m + "\n"; e.scrollTop = e.scrollHeight; };
+    const socket = io("http://localhost:9090", { transports: ["websocket", "polling"] });
+    socket.on("connect",    () => { document.getElementById('ioStatus').textContent = "CONNECTED ✅ (" + socket.id + ")"; ioLog("[connect] " + socket.id); });
+    socket.on("message",    (d) => ioLog("[recv] " + JSON.stringify(d)));
+    socket.on("disconnect", () => { document.getElementById('ioStatus').textContent = "DISCONNECTED ❌"; ioLog("[disconnect]"); });
+    socket.on("connect_error", (err) => ioLog("[error] " + err.message));
+    function ioSend() {
+      const v = document.getElementById('ioInput').value;
+      socket.emit("message", v); ioLog("[emit] " + v);
+    }
+  </script>
+</body>
+</html>

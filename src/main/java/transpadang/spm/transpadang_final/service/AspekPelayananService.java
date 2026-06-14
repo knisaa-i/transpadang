@@ -1,91 +1,90 @@
 package transpadang.spm.transpadang_final.service;
 
-import com.blazebit.persistence.CriteriaBuilder;
 import com.blazebit.persistence.CriteriaBuilderFactory;
 import com.blazebit.persistence.view.EntityViewManager;
 import com.blazebit.persistence.view.EntityViewSetting;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import transpadang.spm.transpadang_final.bean.AspekPelayananDto;
 import transpadang.spm.transpadang_final.entity.AspekPelayanan;
+import transpadang.spm.transpadang_final.entity.QAspekPelayanan;
 import transpadang.spm.transpadang_final.view.AspekPelayananView;
 
 import java.util.List;
 
 /**
  * Service master Aspek Pelayanan.
- * Response berupa Blazebit entity view ({@link AspekPelayananView}).
+ * Query memakai CriteriaBuilderFactory + QueryDSL Q-class (path type-safe),
+ * response berupa Blazebit entity view ({@link AspekPelayananView}).
  */
 @Service
+@RequiredArgsConstructor
 public class AspekPelayananService {
 
-    @PersistenceContext
-    private EntityManager em;
-
+    private final EntityManager em;
     private final CriteriaBuilderFactory cbf;
     private final EntityViewManager evm;
 
-    public AspekPelayananService(CriteriaBuilderFactory cbf, EntityViewManager evm) {
-        this.cbf = cbf;
-        this.evm = evm;
-    }
-
     @Transactional(readOnly = true)
     public List<AspekPelayananView> findAll() {
-        CriteriaBuilder<AspekPelayanan> cb = cbf.create(em, AspekPelayanan.class)
-                .orderByAsc("urutan").orderByAsc("id");
-        return evm.applySetting(EntityViewSetting.create(AspekPelayananView.class), cb).getResultList();
+        var q = new QAspekPelayanan("a");
+        var query = cbf.create(em, AspekPelayanan.class).from(AspekPelayanan.class, q.getMetadata().getName())
+                .orderByAsc(q.urutan.toString())
+                .orderByAsc(q.id.toString());
+        return evm.applySetting(EntityViewSetting.create(AspekPelayananView.class), query).getResultList();
     }
 
     @Transactional(readOnly = true)
     public AspekPelayananView findById(Long id) {
-        AspekPelayananView view = view(id);
-        if (view == null) {
+        var q = new QAspekPelayanan("a");
+        var query = cbf.create(em, AspekPelayanan.class).from(AspekPelayanan.class, q.getMetadata().getName())
+                .where(q.id.toString()).eq(id);
+        var result = evm.applySetting(EntityViewSetting.create(AspekPelayananView.class), query).getResultList();
+        if (result.isEmpty()) {
             throw new EntityNotFoundException("Aspek pelayanan tidak ditemukan: " + id);
         }
-        return view;
+        return result.getFirst();
     }
 
     @Transactional
     public AspekPelayananView create(AspekPelayananDto dto) {
-        AspekPelayanan aspek = new AspekPelayanan();
+        var aspek = new AspekPelayanan();
         apply(aspek, dto);
         em.persist(aspek);
         em.flush();
-        return view(aspek.getId());
+        return findById(aspek.getId());
     }
 
     @Transactional
     public AspekPelayananView update(Long id, AspekPelayananDto dto) {
-        AspekPelayanan aspek = em.find(AspekPelayanan.class, id);
-        if (aspek == null) {
-            throw new EntityNotFoundException("Aspek pelayanan tidak ditemukan: " + id);
-        }
+        var aspek = findEntity(id);
         apply(aspek, dto);
         em.flush();
-        return view(id);
+        return findById(id);
     }
 
     @Transactional
     public void delete(Long id) {
-        AspekPelayanan aspek = em.find(AspekPelayanan.class, id);
-        if (aspek == null) {
+        em.remove(findEntity(id));
+    }
+
+    /** Ambil entity (managed) via cbf + QueryDSL Q-class, untuk update/delete. */
+    private AspekPelayanan findEntity(Long id) {
+        var q = new QAspekPelayanan("a");
+        var list = cbf.create(em, AspekPelayanan.class).from(AspekPelayanan.class, q.getMetadata().getName())
+                .where(q.id.toString()).eq(id)
+                .getResultList();
+        if (list.isEmpty()) {
             throw new EntityNotFoundException("Aspek pelayanan tidak ditemukan: " + id);
         }
-        em.remove(aspek);
+        return list.getFirst();
     }
 
     private void apply(AspekPelayanan aspek, AspekPelayananDto dto) {
         aspek.setNama(dto.getNama());
         aspek.setUrutan(dto.getUrutan());
-    }
-
-    private AspekPelayananView view(Long id) {
-        CriteriaBuilder<AspekPelayanan> cb = cbf.create(em, AspekPelayanan.class).where("id").eq(id);
-        return evm.applySetting(EntityViewSetting.create(AspekPelayananView.class), cb)
-                .getResultList().stream().findFirst().orElse(null);
     }
 }

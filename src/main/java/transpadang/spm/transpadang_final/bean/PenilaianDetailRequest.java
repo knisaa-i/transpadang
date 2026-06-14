@@ -10,9 +10,11 @@ import java.math.BigDecimal;
 @Schema(description = "Permintaan input satu baris detail penilaian")
 public class PenilaianDetailRequest {
 
-    @NotNull
-    @Schema(description = "ID bus yang dinilai", example = "1")
+    @Schema(description = "ID bus (diisi untuk kategori Bus)", example = "1")
     private Long busId;
+
+    @Schema(description = "ID halte (diisi untuk kategori Halte)", example = "1")
+    private Long halteId;
 
     @NotNull
     @Schema(description = "ID indikator yang dinilai", example = "1")

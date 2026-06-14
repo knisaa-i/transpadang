@@ -21,9 +21,15 @@ public class PenilaianDetail {
     @JoinColumn(name = "penilaian_id")
     private PenilaianSpm penilaian;
 
+    // diisi untuk detail kategori Bus (null bila detail halte)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bus_id")
     private Bus bus;
+
+    // diisi untuk detail kategori Halte (null bila detail bus)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "halte_id")
+    private Halte halte;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "indikator_id")

@@ -2,11 +2,11 @@ package transpadang.spm.transpadang_final.view;
 
 import com.blazebit.persistence.view.EntityView;
 import com.blazebit.persistence.view.IdMapping;
-import transpadang.spm.transpadang_final.entity.Bus;
+import transpadang.spm.transpadang_final.entity.Halte;
 import transpadang.spm.transpadang_final.entity.Koridor;
 
-@EntityView(Bus.class)
-public interface BusView {
+@EntityView(Halte.class)
+public interface HalteView {
 
     @IdMapping
     Long getId();
@@ -23,9 +23,9 @@ public interface BusView {
         String getNama();
     }
 
-    String getNoLambung();
+    Integer getNomor();
 
-    String getPlatNomor();
+    String getNama();
 
     Boolean getAktif();
 }

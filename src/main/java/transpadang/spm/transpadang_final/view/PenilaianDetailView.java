@@ -2,7 +2,9 @@ package transpadang.spm.transpadang_final.view;
 
 import com.blazebit.persistence.view.EntityView;
 import com.blazebit.persistence.view.IdMapping;
-import com.blazebit.persistence.view.Mapping;
+import transpadang.spm.transpadang_final.entity.Bus;
+import transpadang.spm.transpadang_final.entity.Halte;
+import transpadang.spm.transpadang_final.entity.IndikatorSpm;
 import transpadang.spm.transpadang_final.entity.PenilaianDetail;
 
 import java.math.BigDecimal;
@@ -13,21 +15,41 @@ public interface PenilaianDetailView {
     @IdMapping
     Long getId();
 
+    BusView getBus();
 
-    @Mapping("bus.id")
-    Long getBusId();
+    @EntityView(Bus.class)
+    interface BusView {
+        @IdMapping
+        Long getId();
 
-    @Mapping("bus.noLambung")
-    String getNoLambung();
+        String getNoLambung();
 
-    @Mapping("indikator.id")
-    Long getIndikatorId();
+    }
 
-    @Mapping("indikator.uraian")
-    String getIndikatorUraian();
+    HalteView getHalte();
 
-    @Mapping("indikator.bobot")
-    BigDecimal getBobot();
+    @EntityView(Halte.class)
+    interface HalteView {
+        @IdMapping
+        Long getId();
+
+        Integer getNomor();
+
+        String getNama();
+    }
+
+    IndikatorView getIndikator();
+
+    @EntityView(IndikatorSpm.class)
+    interface IndikatorView {
+        @IdMapping
+        Long getId();
+
+        String getUraian();
+
+        BigDecimal getBobot();
+
+    }
 
     BigDecimal getNilaiCapaian();
 
