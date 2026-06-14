@@ -1,4 +1,4 @@
-package transpadang.spm.transpadang_final;
+package transpadang.spm.transpadang_final.config;
 
 import com.blazebit.persistence.Criteria;
 import com.blazebit.persistence.CriteriaBuilderFactory;

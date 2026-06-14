@@ -5,7 +5,6 @@ import com.blazebit.persistence.view.IdMapping;
 import transpadang.spm.transpadang_final.entity.Bus;
 import transpadang.spm.transpadang_final.entity.ChecklistDetail;
 import transpadang.spm.transpadang_final.entity.ChecklistItem;
-
 import java.math.BigDecimal;
 
 @EntityView(ChecklistDetail.class)

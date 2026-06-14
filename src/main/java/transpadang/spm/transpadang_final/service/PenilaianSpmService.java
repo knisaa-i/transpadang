@@ -27,18 +27,13 @@ import transpadang.spm.transpadang_final.entity.QPenilaianDetail;
 import transpadang.spm.transpadang_final.entity.QPenilaianSpm;
 import transpadang.spm.transpadang_final.entity.StatusPenilaian;
 import transpadang.spm.transpadang_final.entity.User;
+import transpadang.spm.transpadang_final.helper.CurrentUser;
 import transpadang.spm.transpadang_final.view.PenilaianDetailView;
 import transpadang.spm.transpadang_final.view.PenilaianSpmView;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
-/**
- * Service transaksi Penilaian SPM (header + detail).
- * Query memakai CriteriaBuilderFactory + QueryDSL Q-class (path type-safe);
- * response berupa Blazebit entity view ({@link PenilaianSpmView}).
- */
 @Service
 @RequiredArgsConstructor
 public class PenilaianSpmService {
@@ -46,6 +41,7 @@ public class PenilaianSpmService {
     private final EntityManager em;
     private final CriteriaBuilderFactory cbf;
     private final EntityViewManager evm;
+    private final CurrentUser currentUser;
 
     @Transactional(readOnly = true)
     public PageResponse<PenilaianSpmView> findAll(Long koridorId, int page, int size) {
@@ -77,6 +73,10 @@ public class PenilaianSpmService {
 
     @Transactional
     public PenilaianSpmView create(PenilaianSpmRequest request) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         var penilaian = new PenilaianSpm();
         penilaian.setKoridor(em.getReference(Koridor.class, request.getKoridorId()));
         penilaian.setHari(request.getHari());
@@ -128,6 +128,10 @@ public class PenilaianSpmService {
 
     @Transactional
     public void delete(Long id) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         PenilaianSpm penilaian = findEntity(id);
         cbf.delete(em, PenilaianDetail.class, "d")
                 .where("d.penilaian.id").eq(id)
@@ -177,6 +181,10 @@ public class PenilaianSpmService {
 
     @Transactional
     public void deleteDetail(Long penilaianId, Long detailId) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         var list = cbf.create(em, PenilaianDetail.class, "d")
                 .fetch("penilaian")
                 .where("d.id").eq(detailId)

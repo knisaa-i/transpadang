@@ -12,15 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 import transpadang.spm.transpadang_final.bean.KoridorDto;
 import transpadang.spm.transpadang_final.entity.Koridor;
 import transpadang.spm.transpadang_final.entity.QKoridor;
+import transpadang.spm.transpadang_final.helper.CurrentUser;
 import transpadang.spm.transpadang_final.view.KoridorView;
-
 import java.util.List;
 
-/**
- * Service master Koridor.
- * Query memakai CriteriaBuilderFactory + QueryDSL Q-class (path type-safe),
- * response berupa Blazebit entity view ({@link KoridorView}).
- */
 @Service
 @RequiredArgsConstructor
 public class KoridorService {
@@ -28,6 +23,7 @@ public class KoridorService {
     private final EntityManager em;
     private final CriteriaBuilderFactory cbf;
     private final EntityViewManager evm;
+    private final CurrentUser currentUser;
 
     @Transactional(readOnly = true)
     public List<KoridorView> findAll() {
@@ -52,6 +48,10 @@ public class KoridorService {
 
     @Transactional
     public KoridorView create(KoridorDto dto) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         var koridor = new Koridor();
         apply(koridor, dto);
         em.persist(koridor);
@@ -61,6 +61,10 @@ public class KoridorService {
 
     @Transactional
     public KoridorView update(Long id, KoridorDto dto) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         var koridor = findEntity(id);
         apply(koridor, dto);
         em.flush();

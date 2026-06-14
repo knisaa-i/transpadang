@@ -20,10 +20,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Export penilaian SPM ke Excel. Query memakai QueryDSL (JPAQueryFactory).
- * export(id) menghasilkan 2 sheet: "Bus" dan "Halte".
- */
 @Service
 @RequiredArgsConstructor
 public class PenilaianExportService {

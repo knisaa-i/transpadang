@@ -6,7 +6,6 @@ import transpadang.spm.transpadang_final.entity.Koridor;
 import transpadang.spm.transpadang_final.entity.PenilaianSpm;
 import transpadang.spm.transpadang_final.entity.StatusPenilaian;
 import transpadang.spm.transpadang_final.entity.User;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;

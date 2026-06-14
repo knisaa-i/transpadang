@@ -10,7 +10,6 @@ import transpadang.spm.transpadang_final.bean.ApiResponse;
 import transpadang.spm.transpadang_final.bean.AspekPelayananDto;
 import transpadang.spm.transpadang_final.service.AspekPelayananService;
 import transpadang.spm.transpadang_final.view.AspekPelayananView;
-
 import java.util.List;
 
 @RestController

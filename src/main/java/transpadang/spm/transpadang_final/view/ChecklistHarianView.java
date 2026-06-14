@@ -10,7 +10,6 @@ import transpadang.spm.transpadang_final.entity.StatusChecklist;
 import transpadang.spm.transpadang_final.entity.SubjekChecklist;
 import transpadang.spm.transpadang_final.entity.TipeJawaban;
 import transpadang.spm.transpadang_final.entity.User;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;

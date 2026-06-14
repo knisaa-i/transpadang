@@ -13,15 +13,9 @@ import transpadang.spm.transpadang_final.bean.BusDto;
 import transpadang.spm.transpadang_final.entity.Bus;
 import transpadang.spm.transpadang_final.entity.Koridor;
 import transpadang.spm.transpadang_final.entity.QBus;
+import transpadang.spm.transpadang_final.helper.CurrentUser;
 import transpadang.spm.transpadang_final.view.BusView;
-
 import java.util.List;
-
-/**
- * Service master Bus.
- * Query memakai CriteriaBuilderFactory + QueryDSL Q-class (path type-safe),
- * response berupa Blazebit entity view ({@link BusView}).
- */
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +24,7 @@ public class BusService {
     private final EntityManager em;
     private final CriteriaBuilderFactory cbf;
     private final EntityViewManager evm;
+    private final CurrentUser currentUser;
 
     @Transactional(readOnly = true)
     public List<BusView> findAll() {
@@ -65,6 +60,10 @@ public class BusService {
 
     @Transactional
     public BusView create(BusDto dto) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         var bus = new Bus();
         apply(bus, dto);
         em.persist(bus);
@@ -74,6 +73,10 @@ public class BusService {
 
     @Transactional
     public BusView update(Long id, BusDto dto) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         var bus = findEntity(id);
         apply(bus, dto);
         em.flush();

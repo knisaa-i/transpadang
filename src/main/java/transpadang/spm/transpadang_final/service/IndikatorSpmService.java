@@ -20,13 +20,9 @@ import transpadang.spm.transpadang_final.entity.AspekPelayanan;
 import transpadang.spm.transpadang_final.entity.IndikatorSpm;
 import transpadang.spm.transpadang_final.entity.QIndikatorSpm;
 import transpadang.spm.transpadang_final.entity.SubKategori;
+import transpadang.spm.transpadang_final.helper.CurrentUser;
 import transpadang.spm.transpadang_final.view.IndikatorSpmView;
 
-/**
- * Service Indikator SPM.
- * Query memakai CriteriaBuilderFactory + QueryDSL Q-class (path type-safe),
- * response berupa Blazebit entity view ({@link IndikatorSpmView}) dengan paginasi Blazebit.
- */
 @Service
 @RequiredArgsConstructor
 public class IndikatorSpmService {
@@ -34,7 +30,7 @@ public class IndikatorSpmService {
     private final EntityManager em;
     private final CriteriaBuilderFactory cbf;
     private final EntityViewManager evm;
-
+    private final CurrentUser currentUser;
 
     @Transactional(readOnly = true)
     public PageResponse<IndikatorSpmView> search(IndikatorSpmFilter filter) {
@@ -95,6 +91,10 @@ public class IndikatorSpmService {
 
     @Transactional
     public IndikatorSpmView create(IndikatorSpmDto dto) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         var indikator = new IndikatorSpm();
         apply(indikator, dto);
         em.persist(indikator);
@@ -104,6 +104,10 @@ public class IndikatorSpmService {
 
     @Transactional
     public IndikatorSpmView update(Long id, IndikatorSpmDto dto) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         var indikator = findEntity(id);
         apply(indikator, dto);
         em.flush();

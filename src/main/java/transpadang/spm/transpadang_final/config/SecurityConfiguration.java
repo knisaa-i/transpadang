@@ -11,20 +11,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * Konfigurasi keamanan + pembatasan role.
- *
- * <p>Ringkasan wewenang:
- * <ul>
- *   <li>Login &amp; Swagger: terbuka.</li>
- *   <li>Registrasi user &amp; ubah data master (koridor/bus/indikator/sub-kategori/aspek): hanya ADMIN.</li>
- *   <li>Buat penilaian: MAKER atau ADMIN.</li>
- *   <li>Ubah status penilaian: semua user login, tetapi dibatasi per-status di service
- *       (SUBMITTED=MAKER, CHECKED=CHECKER, APPROVED=APPROVER).</li>
- *   <li>Hapus penilaian: hanya ADMIN.</li>
- *   <li>Endpoint baca lain: cukup login.</li>
- * </ul>
- */
 @Configuration
 public class SecurityConfiguration {
 

@@ -5,7 +5,6 @@ import com.blazebit.persistence.view.IdMapping;
 import transpadang.spm.transpadang_final.entity.AspekPelayanan;
 import transpadang.spm.transpadang_final.entity.IndikatorSpm;
 import transpadang.spm.transpadang_final.entity.SubKategori;
-
 import java.math.BigDecimal;
 
 @EntityView(IndikatorSpm.class)

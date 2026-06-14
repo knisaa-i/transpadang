@@ -13,15 +13,10 @@ import transpadang.spm.transpadang_final.bean.HalteDto;
 import transpadang.spm.transpadang_final.entity.Halte;
 import transpadang.spm.transpadang_final.entity.Koridor;
 import transpadang.spm.transpadang_final.entity.QHalte;
+import transpadang.spm.transpadang_final.helper.CurrentUser;
 import transpadang.spm.transpadang_final.view.HalteView;
-
 import java.util.List;
 
-/**
- * Service master Halte (unit halte per koridor).
- * Query memakai CriteriaBuilderFactory + QueryDSL Q-class (path type-safe),
- * response berupa Blazebit entity view ({@link HalteView}).
- */
 @Service
 @RequiredArgsConstructor
 public class HalteService {
@@ -29,6 +24,7 @@ public class HalteService {
     private final EntityManager em;
     private final CriteriaBuilderFactory cbf;
     private final EntityViewManager evm;
+    private final CurrentUser currentUser;
 
     @Transactional(readOnly = true)
     public List<HalteView> findAll() {
@@ -64,6 +60,10 @@ public class HalteService {
 
     @Transactional
     public HalteView create(HalteDto dto) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         var halte = new Halte();
         apply(halte, dto);
         em.persist(halte);
@@ -73,6 +73,10 @@ public class HalteService {
 
     @Transactional
     public HalteView update(Long id, HalteDto dto) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         var halte = findEntity(id);
         apply(halte, dto);
         em.flush();

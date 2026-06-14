@@ -4,7 +4,6 @@ import com.blazebit.persistence.CriteriaBuilder;
 import com.blazebit.persistence.CriteriaBuilderFactory;
 import com.blazebit.persistence.view.EntityViewManager;
 import com.blazebit.persistence.view.EntityViewSetting;
-import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -20,14 +19,6 @@ import transpadang.spm.transpadang_final.entity.QUser;
 import transpadang.spm.transpadang_final.entity.User;
 import transpadang.spm.transpadang_final.view.UserView;
 
-/**
- * Service autentikasi & manajemen User.
- * <ul>
- *     <li>Pencarian user memakai QueryDSL ({@link JPAQueryFactory}).</li>
- *     <li>Proyeksi data user memakai Blazebit entity view ({@link EntityViewManager}).</li>
- *     <li>Token memakai {@link JwtService}.</li>
- * </ul>
- */
 @Service
 @RequiredArgsConstructor
 public class UserService {

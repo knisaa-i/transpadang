@@ -6,7 +6,6 @@ import com.blazebit.persistence.PagedList;
 import com.blazebit.persistence.PaginatedCriteriaBuilder;
 import com.blazebit.persistence.view.EntityViewManager;
 import com.blazebit.persistence.view.EntityViewSetting;
-import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -24,18 +23,12 @@ import transpadang.spm.transpadang_final.view.ChecklistDetailView;
 import transpadang.spm.transpadang_final.view.ChecklistHarianView;
 import transpadang.spm.transpadang_final.view.ChecklistItemView;
 import transpadang.spm.transpadang_final.view.ChecklistTemplateView;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * Service modul Checklist Harian (template + item master, header + detail transaksi).
- * Query memakai CriteriaBuilderFactory + QueryDSL Q-class (path type-safe);
- * response berupa Blazebit entity view, persis pola {@code PenilaianSpmService}.
- */
 @Service
 @RequiredArgsConstructor
 public class ChecklistService {
@@ -43,7 +36,6 @@ public class ChecklistService {
     private final EntityManager em;
     private final CriteriaBuilderFactory cbf;
     private final EntityViewManager evm;
-    private final JPAQueryFactory queryFactory;
 
     // ================= MASTER (template & item) =================
 

@@ -11,19 +11,15 @@ import org.springframework.transaction.annotation.Transactional;
 import transpadang.spm.transpadang_final.bean.AspekPelayananDto;
 import transpadang.spm.transpadang_final.entity.AspekPelayanan;
 import transpadang.spm.transpadang_final.entity.QAspekPelayanan;
+import transpadang.spm.transpadang_final.helper.CurrentUser;
 import transpadang.spm.transpadang_final.view.AspekPelayananView;
-
 import java.util.List;
 
-/**
- * Service master Aspek Pelayanan.
- * Query memakai CriteriaBuilderFactory + QueryDSL Q-class (path type-safe),
- * response berupa Blazebit entity view ({@link AspekPelayananView}).
- */
 @Service
 @RequiredArgsConstructor
 public class AspekPelayananService {
 
+    private final CurrentUser currentUser;
     private final EntityManager em;
     private final CriteriaBuilderFactory cbf;
     private final EntityViewManager evm;
@@ -51,6 +47,10 @@ public class AspekPelayananService {
 
     @Transactional
     public AspekPelayananView create(AspekPelayananDto dto) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         var aspek = new AspekPelayanan();
         apply(aspek, dto);
         em.persist(aspek);
@@ -60,6 +60,10 @@ public class AspekPelayananService {
 
     @Transactional
     public AspekPelayananView update(Long id, AspekPelayananDto dto) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         var aspek = findEntity(id);
         apply(aspek, dto);
         em.flush();
@@ -68,6 +72,10 @@ public class AspekPelayananService {
 
     @Transactional
     public void delete(Long id) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         em.remove(findEntity(id));
     }
 

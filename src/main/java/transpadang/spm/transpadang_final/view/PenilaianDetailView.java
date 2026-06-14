@@ -6,7 +6,6 @@ import transpadang.spm.transpadang_final.entity.Bus;
 import transpadang.spm.transpadang_final.entity.Halte;
 import transpadang.spm.transpadang_final.entity.IndikatorSpm;
 import transpadang.spm.transpadang_final.entity.PenilaianDetail;
-
 import java.math.BigDecimal;
 
 @EntityView(PenilaianDetail.class)

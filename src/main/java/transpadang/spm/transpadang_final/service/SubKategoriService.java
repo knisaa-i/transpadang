@@ -13,15 +13,10 @@ import transpadang.spm.transpadang_final.bean.SubKategoriDto;
 import transpadang.spm.transpadang_final.entity.AspekPelayanan;
 import transpadang.spm.transpadang_final.entity.QSubKategori;
 import transpadang.spm.transpadang_final.entity.SubKategori;
+import transpadang.spm.transpadang_final.helper.CurrentUser;
 import transpadang.spm.transpadang_final.view.SubKategoriView;
-
 import java.util.List;
 
-/**
- * Service master Sub Kategori (Halte, Bus, Manusia) di bawah aspek.
- * Query memakai CriteriaBuilderFactory + QueryDSL Q-class (path type-safe),
- * response berupa Blazebit entity view ({@link SubKategoriView}).
- */
 @Service
 @RequiredArgsConstructor
 public class SubKategoriService {
@@ -29,6 +24,7 @@ public class SubKategoriService {
     private final EntityManager em;
     private final CriteriaBuilderFactory cbf;
     private final EntityViewManager evm;
+    private final CurrentUser currentUser;
 
     @Transactional(readOnly = true)
     public List<SubKategoriView> findAll() {
@@ -67,6 +63,10 @@ public class SubKategoriService {
 
     @Transactional
     public SubKategoriView create(SubKategoriDto dto) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         var sub = new SubKategori();
         apply(sub, dto);
         em.persist(sub);
@@ -76,6 +76,10 @@ public class SubKategoriService {
 
     @Transactional
     public SubKategoriView update(Long id, SubKategoriDto dto) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         var sub = findEntity(id);
         apply(sub, dto);
         em.flush();
@@ -84,6 +88,10 @@ public class SubKategoriService {
 
     @Transactional
     public void delete(Long id) {
+        var currUser = currentUser.getCurrentUser();
+        if (currUser == null){
+            throw new RuntimeException("User Belum Login");
+        }
         em.remove(findEntity(id));
     }
 
